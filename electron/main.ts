@@ -178,7 +178,7 @@ function createMenu() {
         {
           label: '访问官网',
           click: async () => {
-            await shell.openExternal('https://example.com');
+            await shell.openExternal('https://github.com/Rain-31/novelbox');
           }
         },
 
