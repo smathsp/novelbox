@@ -1,0 +1,220 @@
+<template>
+  <div v-if="show" class="outline-panel">
+    <div class="outline-header">
+      <h2 class="text-xl font-bold">大纲</h2>
+      <button @click="$emit('close')" class="close-btn">
+        <span class="close-icon">×</span>
+      </button>
+    </div>
+    <div class="outline-tabs">
+      <button @click="activeTab = 'setting'" :class="['tab-btn', { active: activeTab === 'setting' }]">
+        设定
+      </button>
+      <button @click="activeTab = 'plot'" :class="['tab-btn', { active: activeTab === 'plot' }]">
+        剧情
+      </button>
+    </div>
+    <div class="outline-content">
+      <div v-show="activeTab === 'setting'" class="tab-panel">
+        <textarea v-model="settingContent" class="content-input" placeholder="写一些关于设定的想法，越多越好..." @input="saveContent"
+          :disabled="isGenerating"></textarea>
+        <div class="button-group">
+          <button @click="generateAIContent('setting')" class="ai-btn"
+            :disabled="isGenerating || !settingContent.trim()">
+            {{ isGenerating ? '生成中...' : 'AI润色' }}
+          </button>
+          <button @click="saveContent" class="save-btn" :disabled="!settingContent.trim()">
+            保存
+          </button>
+        </div>
+      </div>
+      <div v-show="activeTab === 'plot'" class="tab-panel">
+        <textarea v-model="plotContent" class="content-input" placeholder="将小说的完整设定填写在这里点击“AI润色”按钮..."
+          @input="saveContent" :disabled="isGenerating"></textarea>
+        <div class="button-group">
+          <button @click="generateAIContent('plot')" class="ai-btn" :disabled="isGenerating || !plotContent.trim()">
+            {{ isGenerating ? '生成中...' : 'AI润色' }}
+          </button>
+          <button @click="saveContent" class="save-btn" :disabled="!plotContent.trim()">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import AIService from '../services/aiService'
+import { BookConfigService } from '../services/bookConfigService'
+import { defaultSettingsPrompt, defaultOutlinePrompt } from '../constants'
+import { PromptConfigService } from '../services/promptConfigService'
+import { AIConfigService } from '../services/aiConfigService'
+
+const props = defineProps<{
+  show: boolean
+  currentBook: any
+}>()
+
+defineEmits(['close'])
+
+const activeTab = ref('setting')
+const settingContent = ref('')
+const plotContent = ref('')
+const isGenerating = ref(false)
+
+let aiService: AIService
+
+const generateAIContent = async (type: 'setting' | 'plot') => {
+  const content = type === 'setting' ? settingContent.value : plotContent.value
+  if (!content.trim() || isGenerating.value) return
+
+  isGenerating.value = true
+  try {
+    // 从AIConfigService获取AI服务配置
+    const aiConfig = await AIConfigService.loadConfig()
+    aiService = new AIService({
+      provider: aiConfig.provider || 'openai',
+      model: aiConfig.model || 'gpt-3.5-turbo',
+      apiKey: aiConfig.apiKey || '',
+      proxyUrl: aiConfig.proxyUrl || ''
+    })
+
+    // 使用props传入的currentBook对象
+    if (!props.currentBook) {
+      ElMessage.error('无法获取当前书籍信息')
+      return
+    }
+    const currentBook = props.currentBook
+
+    // 从PromptConfigService获取提示词配置
+    const promptConfig = type === 'setting'
+      ? await PromptConfigService.getPromptByName('settings') || defaultSettingsPrompt
+      : await PromptConfigService.getPromptByName('outline') || defaultOutlinePrompt
+
+    // 替换提示词中的变量
+    const prompt = promptConfig
+      .replace('${content}', content)
+      .replace('${title}', currentBook.title)
+      .replace('${description}', currentBook.description || '')
+
+    const response = await aiService.generateText(prompt)
+    if (response.error) {
+      console.error('AI生成失败:', response.error)
+      ElMessage.error(`AI生成失败：${response.error}`)
+      return
+    }
+
+    if (type === 'setting') {
+      settingContent.value = response.text
+    } else {
+      plotContent.value = response.text
+    }
+    saveContent()
+  } catch (error) {
+    console.error('AI生成失败:', error)
+    if (error instanceof Error) {
+      ElMessage.error(`AI生成失败：${error.message}`)
+    } else {
+      ElMessage.error('AI生成失败，请检查网络连接和API配置')
+    }
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+const saveContent = async () => {
+  if (!props.currentBook) return
+
+  props.currentBook.setting = settingContent.value
+  props.currentBook.plot = plotContent.value
+
+  await BookConfigService.saveBook(props.currentBook)
+}
+
+onMounted(() => {
+  if (props.currentBook) {
+    settingContent.value = props.currentBook.setting || ''
+    plotContent.value = props.currentBook.plot || ''
+  }
+})
+
+watch(() => props.show, (newVal) => {
+  if (newVal && props.currentBook) {
+    settingContent.value = props.currentBook.setting || ''
+    plotContent.value = props.currentBook.plot || ''
+  }
+})
+</script>
+
+<style scoped>
+.outline-panel {
+  @apply fixed right-0 top-0 h-screen w-64 bg-white shadow-lg z-50 flex flex-col;
+  animation: slideIn 0.3s ease-out;
+}
+
+.outline-header {
+  @apply flex items-center justify-between p-4 border-b border-gray-200;
+}
+
+.close-btn {
+  @apply p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100;
+}
+
+.close-icon {
+  @apply text-2xl font-light;
+}
+
+.outline-tabs {
+  @apply flex border-b border-gray-200;
+}
+
+.tab-btn {
+  @apply flex-1 py-3 text-center text-gray-600 hover:text-gray-900 relative;
+}
+
+.tab-btn.active {
+  @apply text-blue-600;
+}
+
+.tab-btn.active::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-full h-0.5 bg-blue-600;
+}
+
+.outline-content {
+  @apply flex-1 overflow-hidden;
+}
+
+.tab-panel {
+  @apply h-full p-4 flex flex-col;
+}
+
+.content-input {
+  @apply w-full h-[calc(100%-80px)] p-1 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.button-group {
+  @apply flex gap-2 mt-2 flex-shrink-0;
+}
+
+.ai-btn {
+  @apply flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.save-btn {
+  @apply flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+</style>
