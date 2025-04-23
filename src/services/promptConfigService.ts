@@ -1,7 +1,7 @@
 import { FileStorageService } from './fileStorageService';
 import { WorkspaceService } from './workspaceservice';
 import { WorkspaceError } from '../errors/workspaceError';
-import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt } from '../constants';
+import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt } from '../constants';
 
 type PromptConfig = {
   bookNameAndDesc: string;
@@ -12,6 +12,7 @@ type PromptConfig = {
   continue: string;
   expand: string;
   abbreviate: string;
+  rewrite: string;
 };
 
 export class PromptConfigService {
@@ -58,7 +59,8 @@ export class PromptConfigService {
         chapter: defaultChapterPrompt,
         continue: defaultContinuePrompt,
         expand: defaultExpandPrompt,
-        abbreviate: defaultAbbreviatePrompt
+        abbreviate: defaultAbbreviatePrompt,
+        rewrite: defaultRewriteAbbreviatePrompt,
       };
     }
   }

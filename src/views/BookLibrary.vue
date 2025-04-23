@@ -178,6 +178,12 @@
             <textarea v-model="tempPromptConfig.abbreviate" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="abbreviateTextarea"></textarea>
           </div>
         </div>
+        <div class="form-group">
+          <label>改写提示词</label>
+          <div class="prompt-input-group">
+            <textarea v-model="tempPromptConfig.rewrite" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="rewriteTextarea"></textarea>
+          </div>
+        </div>
       </div>
       <div class="variable-toolbar">
         <button @click="insertVariable('title', $event)">书名</button>
@@ -461,7 +467,7 @@ const continueTextarea = ref<HTMLTextAreaElement>()
 const expandTextarea = ref<HTMLTextAreaElement>()
 const abbreviateTextarea = ref<HTMLTextAreaElement>()
 
-import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt } from '../constants'
+import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
 
 const promptConfig = reactive({
@@ -473,6 +479,7 @@ const promptConfig = reactive({
   continue: defaultContinuePrompt,
   expand: defaultExpandPrompt,
   abbreviate: defaultAbbreviatePrompt,
+  rewrite: defaultRewriteAbbreviatePrompt,
 })
 
 // 加载提示词配置
@@ -496,7 +503,8 @@ const tempPromptConfig = reactive({
   chapter: promptConfig.chapter,
   continue: promptConfig.continue,
   expand: promptConfig.expand,
-  abbreviate: promptConfig.abbreviate
+  abbreviate: promptConfig.abbreviate,
+  rewrite: promptConfig.rewrite
 })
 
 // 检查是否有未保存的修改
@@ -535,6 +543,7 @@ const resetToDefault = () => {
     tempPromptConfig.continue = defaultContinuePrompt
     tempPromptConfig.expand = defaultExpandPrompt
     tempPromptConfig.abbreviate = defaultAbbreviatePrompt
+    tempPromptConfig.rewrite = defaultRewriteAbbreviatePrompt
   }).catch(() => {
     // 用户点击取消按钮，不做任何操作
   })
