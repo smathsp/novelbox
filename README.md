@@ -19,7 +19,7 @@
 
 ## 项目介绍
 
-NovelBox是一款专为小说创作者设计的桌面应用程序，集成了多种AI模型（OpenAI、Anthropic、Google Gemini等），帮助作家更高效地进行创作。应用提供了直观的章节管理、大纲编辑、AI辅助续写等功能，让您的创作过程更加流畅和高效。
+NovelBox是一款专为小说创作者设计的桌面应用程序，集成了多种AI模型（OpenAI、Anthropic、Google Gemini、DeepSeek），帮助作家更高效地进行创作。应用提供了直观的章节管理、大纲编辑、AI辅助续写等功能，让您的创作过程更加流畅和高效。
 
 ## 功能特点
 
@@ -30,7 +30,7 @@ NovelBox是一款专为小说创作者设计的桌面应用程序，集成了多
 - **AI辅助创作**：
   - 智能续写：根据上下文自动生成后续内容
   - 内容扩写/缩写：调整文本篇幅
-  - 支持多种AI模型：OpenAI、Anthropic Claude、Google Gemini等
+  - 支持多种AI模型：OpenAI、Anthropic Claude、Google Gemini、DeepSeek
 - **文档导出**：支持导出为DOCX格式
 - **搜索和替换**：快速查找和修改文本内容
 - **字数统计**：实时显示章节字数
@@ -41,15 +41,15 @@ NovelBox是一款专为小说创作者设计的桌面应用程序，集成了多
 - Windows 10/11 64位操作系统
 
 ### 下载与安装
-1. 从[Releases](https://github.com/yourusername/novel-box/releases)页面下载最新版本的安装包
+1. 从[Releases](https://github.com/Rain-31/novelbox/releases)页面下载最新版本的安装包
 2. 运行下载的安装程序
 3. 按照安装向导的指示完成安装
 
 ### 从源码构建
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/novel-box.git
-cd novel-box
+git clone github.com/Rain-31/novelbox.git
+cd novelbox
 
 # 安装依赖
 pnpm install
@@ -83,7 +83,7 @@ pnpm run electron:release
 - **构建工具**：Vite
 - **桌面应用**：Electron
 - **文档处理**：docx.js
-- **AI集成**：OpenAI API, Anthropic API, Google Generative AI
+- **AI集成**：OpenAI API, Anthropic API, Google Generative AI, DeepSeek
 
 ## 贡献
 
@@ -105,7 +105,7 @@ pnpm run electron:release
 
 ## Introduction
 
-NovelBox is a desktop application designed specifically for novel writers, integrating various AI models (OpenAI, Anthropic, Google Gemini, etc.) to help authors create more efficiently. The application provides intuitive chapter management, outline editing, AI-assisted continuation, and other features to make your creative process smoother and more productive.
+NovelBox is a desktop application designed specifically for novel writers, integrating various AI models (OpenAI, Anthropic, Google Gemini, DeepSeek) to help authors create more efficiently. The application provides intuitive chapter management, outline editing, AI-assisted continuation, and other features to make your creative process smoother and more productive.
 
 ## Features
 
@@ -127,15 +127,15 @@ NovelBox is a desktop application designed specifically for novel writers, integ
 - Windows 10/11 64-bit operating system
 
 ### Download and Installation
-1. Download the latest installation package from the [Releases](https://github.com/yourusername/novel-box/releases) page
+1. Download the latest installation package from the [Releases](https://github.com/Rain-31/novelbox/releases) page
 2. Run the downloaded installer
 3. Follow the installation wizard instructions to complete the installation
 
 ### Build from Source
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/novel-box.git
-cd novel-box
+git clone https://github.com/Rain-31/novelbox.git
+cd novelbox
 
 # Install dependencies
 pnpm install
@@ -169,7 +169,7 @@ pnpm run electron:release
 - **Build Tool**: Vite
 - **Desktop Application**: Electron
 - **Document Processing**: docx.js
-- **AI Integration**: OpenAI API, Anthropic API, Google Generative AI
+- **AI Integration**: OpenAI API, Anthropic API, Google Generative AI, DeepSeek
 
 ## Contributing
 
