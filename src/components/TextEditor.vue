@@ -40,6 +40,8 @@
       <div v-if="showFloatingToolbar" class="floating-toolbar" :style="toolbarStyle">
         <button @click="expandSelectedText">扩写</button>
         <button @click="condenseSelectedText">缩写</button>
+        <input v-if="showRewriteInput" v-model="rewriteContent" placeholder="输入改写内容..." class="rewrite-input" @focus="handleRewriteInputFocus" />
+        <button @click="rewriteSelectedText" class="rewrite-btn">改写</button>
       </div>
       <div class="status-bar" v-if="currentChapter && currentChapter.type === 'chapter'">
         <span>本章字数：{{ chapterWordCount }}字</span>
@@ -57,7 +59,7 @@ import AIService from '../services/aiService'
 import { ElMessage } from 'element-plus'
 import Delta from 'quill-delta';
 import { DocumentService } from '../services/documentService';
-import { defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt } from '../constants'
+import { defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt } from '../constants'
 import { type Book, type Chapter } from '../services/bookConfigService'
 import { AIConfigService } from '../services/aiConfigService'
 import { PromptConfigService } from '../services/promptConfigService'
@@ -70,6 +72,8 @@ const generationTask = ref<{ cancel?: () => void; error?: string; text?: string 
 const showFloatingToolbar = ref(false)
 const toolbarStyle = ref({ top: '0px', left: '0px' })
 const selectedTextRange = ref<any>(null)
+const showRewriteInput = ref(false)
+const rewriteContent = ref('')
 
 // 字数统计
 const chapterWordCount = ref(0)
@@ -104,6 +108,8 @@ const initAIGenerateButton = () => {
 const handleClickOutside = (event: MouseEvent) => {
   const editor = quillEditor.value?.getQuill();
   if (editor && !editor.container.contains(event.target as Node)) {
+    showRewriteInput.value = false;
+    rewriteContent.value = ''
     showFloatingToolbar.value = false;
   }
 };
@@ -171,6 +177,151 @@ const expandSelectedText = async () => {
     ElMessage.error('AI扩写失败，请检查网络连接和API配置');
   }
 };
+
+const handleRewriteInputFocus = () => {
+  if (!selectedTextRange.value) return;
+  const editor = quillEditor.value.getQuill();
+  const range = selectedTextRange.value;
+  const bounds = editor.getBounds(range.index, range.length);
+  const editorRect = editor.container.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  
+  const top = editorRect.top + bounds.top + scrollTop;
+  const left = editorRect.left + bounds.left + scrollLeft;
+  
+  const highlightEl = document.createElement('div');
+  highlightEl.className = 'selected-text-highlight';
+  highlightEl.style.position = 'absolute';
+  highlightEl.style.top = `${top}px`;
+  highlightEl.style.left = `${left}px`;
+  highlightEl.style.width = `${bounds.width}px`;
+  highlightEl.style.height = `${bounds.height}px`;
+  highlightEl.style.backgroundColor = 'rgba(0, 120, 215, 0.3)';
+  highlightEl.style.pointerEvents = 'none';
+  
+  document.body.appendChild(highlightEl);
+  
+  // 移除高亮
+  const removeHighlight = (event) => {
+    const toolbar = document.querySelector('.floating-toolbar');
+    if (!toolbar?.contains(event.target)) {
+      highlightEl.remove();
+      document.removeEventListener('click', removeHighlight);
+    }
+  };
+  document.addEventListener('click', removeHighlight);
+};
+
+const rewriteSelectedText = async () => {
+  const editor = quillEditor.value.getQuill();
+
+  if (rewriteContent.value && selectedTextRange.value) {
+    // 高亮选中文本
+    const range = selectedTextRange.value;
+    const bounds = editor.getBounds(range.index, range.length);
+    const editorRect = editor.container.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    const top = editorRect.top + bounds.top + scrollTop;
+    const left = editorRect.left + bounds.left + scrollLeft;
+    
+    const highlightEl = document.createElement('div');
+    highlightEl.className = 'selected-text-highlight';
+    highlightEl.style.position = 'absolute';
+    highlightEl.style.top = `${top}px`;
+    highlightEl.style.left = `${left}px`;
+    highlightEl.style.width = `${bounds.width}px`;
+    highlightEl.style.height = `${bounds.height}px`;
+    highlightEl.style.backgroundColor = 'rgba(0, 120, 215, 0.3)';
+    highlightEl.style.pointerEvents = 'none';
+    
+    document.body.appendChild(highlightEl);
+    
+    // 移除高亮
+    const removeHighlight = () => {
+      highlightEl.remove();
+      document.removeEventListener('click', removeHighlight);
+    };
+    document.addEventListener('click', removeHighlight);
+    if (!props.currentBook) {
+      ElMessage.error('无法获取当前书籍信息');
+      return;
+    }
+    const currentBook = props.currentBook;
+
+    // 获取当前章节的细纲
+    const findChapterDetail = (chapters: any[]): any => {
+      for (const ch of chapters) {
+        if (ch.id === props.currentChapter?.id) return ch;
+        if (ch.children) {
+          const found = findChapterDetail(ch.children);
+          if (found) return found;
+        }
+      }
+    };
+
+    const chapter = findChapterDetail(currentBook.content || []);
+    if (!chapter?.detailOutline?.detailContent) {
+      ElMessage.error('请先编写本章细纲');
+      return;
+    }
+
+    const selectedText = editor.getText(selectedTextRange.value.index, selectedTextRange.value.length);
+    const content = `${selectedText}\n改写指导：${rewriteContent.value}`;
+
+    const aiConfig = await AIConfigService.loadConfig();
+    const aiService = new AIService({
+      provider: aiConfig.provider || 'openai',
+      model: aiConfig.model || 'gpt-3.5-turbo',
+      apiKey: aiConfig.apiKey || '',
+      proxyUrl: aiConfig.proxyUrl || ''
+    });
+
+    // 获取改写提示词配置
+    const promptConfig = await PromptConfigService.getPromptByName('rewrite') || defaultRewriteAbbreviatePrompt;
+
+    // 替换提示词中的变量
+    const prompt = promptConfig
+      .replace('${title}', currentBook.title)
+      .replace('${settings}', currentBook.setting || '')
+      .replace('${chapterOutline}', chapter.detailOutline.detailContent || '')
+      .replace('${chapter}', editor.getText())
+      .replace('${content}', content);
+
+    console.log(prompt)
+
+    try {
+      const response = await aiService.generateText(prompt);
+      if (response.error) {
+        ElMessage.error(`AI改写失败：${response.error}`);
+        return;
+      }
+      const text = response.text;
+      editor.deleteText(selectedTextRange.value.index, selectedTextRange.value.length);
+      editor.insertText(selectedTextRange.value.index, text);
+      if (props.currentChapter?.id) {
+        saveChapterContent(props.currentChapter.id, content);
+      }
+      rewriteContent.value = '';
+      showRewriteInput.value = false;
+    } catch (error) {
+      console.error('AI改写失败:', error);
+      ElMessage.error('AI改写失败，请检查网络连接和API配置');
+    }
+  } else {
+    showRewriteInput.value = !showRewriteInput.value
+    if (showRewriteInput.value) {
+      const selection = editor.getSelection()
+      if (selection) {
+        document.querySelector('.floating-toolbar')?.classList.add('show-rewrite')
+      }
+    } else {
+      document.querySelector('.floating-toolbar')?.classList.remove('show-rewrite')
+    }
+  }
+}
 
 const condenseSelectedText = async () => {
   if (!selectedTextRange.value) return;
@@ -567,9 +718,16 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
               };
               selectedTextRange.value = range;
               showFloatingToolbar.value = true;
-            } else {
-              showFloatingToolbar.value = false;
-              selectedTextRange.value = null;
+            } else {  
+              const toolbar = document.querySelector('.floating-toolbar');
+              const rewriteInput = document.querySelector('.rewrite-input');
+
+              if ((!toolbar || !toolbar.contains(event.target as Node)) && (!rewriteInput || !rewriteInput.contains(event.target as Node))) {
+                showFloatingToolbar.value = false;
+                showRewriteInput.value = false;
+                rewriteContent.value = ''
+                selectedTextRange.value = null;
+              }
             }
           });
         } catch (error) {
@@ -784,6 +942,54 @@ const handleAIContinue = async () => {
 </script>
 
 <style scoped>
+  .floating-toolbar {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+  }
+  
+  .floating-toolbar button {
+    margin: 0 4px;
+    padding: 4px 8px;
+    border: none;
+    background: #f0f0f0;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .floating-toolbar button:hover {
+    background: #e0e0e0;
+  }
+  
+  .rewrite-btn {
+    position: relative;
+  }
+  
+  .rewrite-input {
+    margin-left: 8px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    width: 0;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  
+  .floating-toolbar.show-rewrite .rewrite-btn {
+    transform: translateX(10px);
+  }
+  
+  .floating-toolbar.show-rewrite .rewrite-input {
+    width: 200px;
+    opacity: 1;
+  }
 .text-editor-container {
   @apply flex flex-col h-full;
 }
