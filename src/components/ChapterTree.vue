@@ -209,7 +209,11 @@ const exportWord = async () => {
 
 <style scoped>
 .chapter-tree {
-  @apply bg-white rounded-lg shadow p-4 h-full;
+  @apply bg-white rounded-lg shadow p-4 h-full overflow-hidden flex flex-col;
+}
+
+.custom-tree {
+  @apply mt-2 flex-1 overflow-auto;
 }
 
 .tree-header {
