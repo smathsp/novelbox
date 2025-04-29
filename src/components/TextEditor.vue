@@ -161,8 +161,13 @@ const expandSelectedText = async () => {
       return;
     }
     const text = response.text;
-    editor.deleteText(selectedTextRange.value.index, selectedTextRange.value.length);
-    editor.insertText(selectedTextRange.value.index, text);
+    editor.updateContents(
+      new Delta()
+        .retain(selectedTextRange.value.index)
+        .delete(selectedTextRange.value.length)
+        .insert(text),
+      'user'
+    );
     if (props.currentChapter?.id) {
       saveChapterContent(props.currentChapter.id, content.value);
     }
@@ -226,8 +231,13 @@ const condenseSelectedText = async () => {
       return;
     }
     const text = response.text;
-    editor.deleteText(selectedTextRange.value.index, selectedTextRange.value.length);
-    editor.insertText(selectedTextRange.value.index, text);
+    editor.updateContents(
+      new Delta()
+        .retain(selectedTextRange.value.index)
+        .delete(selectedTextRange.value.length)
+        .insert(text),
+      'user'
+    );
     if (props.currentChapter?.id) {
       saveChapterContent(props.currentChapter.id, content.value);
     }
@@ -472,7 +482,7 @@ const editorOptions = {
             }
             generatedText += text;
             if (!complete) {
-              editor.insertText(editor.getLength() - 1, text);
+              editor.updateContents(new Delta().retain(editor.getLength() - 1).insert(text), 'user');
             }
           });
         },
