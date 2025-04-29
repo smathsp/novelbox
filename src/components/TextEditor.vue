@@ -40,7 +40,8 @@
       <div v-if="showFloatingToolbar" class="floating-toolbar" :style="toolbarStyle">
         <button @click="expandSelectedText">扩写</button>
         <button @click="condenseSelectedText">缩写</button>
-        <input v-if="showRewriteInput" v-model="rewriteContent" placeholder="输入改写内容..." class="rewrite-input" @focus="handleRewriteInputFocus" />
+        <input v-if="showRewriteInput" v-model="rewriteContent" placeholder="输入改写内容..." class="rewrite-input"
+          @focus="handleRewriteInputFocus" />
         <button @click="rewriteSelectedText" class="rewrite-btn">改写</button>
       </div>
       <div class="status-bar" v-if="currentChapter && currentChapter.type === 'chapter'">
@@ -181,70 +182,41 @@ const expandSelectedText = async () => {
 const handleRewriteInputFocus = () => {
   if (!selectedTextRange.value) return;
   const editor = quillEditor.value.getQuill();
-  const range = selectedTextRange.value;
-  const bounds = editor.getBounds(range.index, range.length);
-  const editorRect = editor.container.getBoundingClientRect();
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-  
-  const top = editorRect.top + bounds.top + scrollTop;
-  const left = editorRect.left + bounds.left + scrollLeft;
-  
-  const highlightEl = document.createElement('div');
-  highlightEl.className = 'selected-text-highlight';
-  highlightEl.style.position = 'absolute';
-  highlightEl.style.top = `${top}px`;
-  highlightEl.style.left = `${left}px`;
-  highlightEl.style.width = `${bounds.width}px`;
-  highlightEl.style.height = `${bounds.height}px`;
-  highlightEl.style.backgroundColor = 'rgba(0, 120, 215, 0.3)';
-  highlightEl.style.pointerEvents = 'none';
-  
-  document.body.appendChild(highlightEl);
-  
-  // 移除高亮
-  const removeHighlight = (event) => {
+
+  editor.formatText(selectedTextRange.value.index, selectedTextRange.value.length, {
+    'background': 'rgba(51, 103, 209)',
+    'color': '#fff',
+  });
+
+  const removeHighlight = (event, index, length) => {
     const toolbar = document.querySelector('.floating-toolbar');
     if (!toolbar?.contains(event.target)) {
-      highlightEl.remove();
-      document.removeEventListener('click', removeHighlight);
+      const editor = quillEditor.value.getQuill();
+
+      editor.formatText(index, length, {
+        'background': false,
+        'color': false,
+      });
+      document.removeEventListener('click', (e) => removeHighlight(e, index, length));
     }
   };
-  document.addEventListener('click', removeHighlight);
+
+  const { index: tempIndex, length: tempLength } = selectedTextRange.value
+  document.addEventListener('click', (e) => removeHighlight(e, tempIndex, tempLength));
+
+  nextTick(() => {
+    const input = document.querySelector('.rewrite-input') as HTMLInputElement;
+    if (input) {
+      input.focus();
+    }
+  })
 };
 
 const rewriteSelectedText = async () => {
   const editor = quillEditor.value.getQuill();
+  const { index: tempIndex, length: tempLength } = selectedTextRange.value
 
-  if (rewriteContent.value && selectedTextRange.value) {
-    // 高亮选中文本
-    const range = selectedTextRange.value;
-    const bounds = editor.getBounds(range.index, range.length);
-    const editorRect = editor.container.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    
-    const top = editorRect.top + bounds.top + scrollTop;
-    const left = editorRect.left + bounds.left + scrollLeft;
-    
-    const highlightEl = document.createElement('div');
-    highlightEl.className = 'selected-text-highlight';
-    highlightEl.style.position = 'absolute';
-    highlightEl.style.top = `${top}px`;
-    highlightEl.style.left = `${left}px`;
-    highlightEl.style.width = `${bounds.width}px`;
-    highlightEl.style.height = `${bounds.height}px`;
-    highlightEl.style.backgroundColor = 'rgba(0, 120, 215, 0.3)';
-    highlightEl.style.pointerEvents = 'none';
-    
-    document.body.appendChild(highlightEl);
-    
-    // 移除高亮
-    const removeHighlight = () => {
-      highlightEl.remove();
-      document.removeEventListener('click', removeHighlight);
-    };
-    document.addEventListener('click', removeHighlight);
+  if (rewriteContent.value) {
     if (!props.currentBook) {
       ElMessage.error('无法获取当前书籍信息');
       return;
@@ -268,7 +240,7 @@ const rewriteSelectedText = async () => {
       return;
     }
 
-    const selectedText = editor.getText(selectedTextRange.value.index, selectedTextRange.value.length);
+    const selectedText = editor.getText(tempIndex, tempLength);
     const content = `${selectedText}\n改写指导：${rewriteContent.value}`;
 
     const aiConfig = await AIConfigService.loadConfig();
@@ -299,8 +271,8 @@ const rewriteSelectedText = async () => {
         return;
       }
       const text = response.text;
-      editor.deleteText(selectedTextRange.value.index, selectedTextRange.value.length);
-      editor.insertText(selectedTextRange.value.index, text);
+      editor.deleteText(tempIndex, tempLength);
+      editor.insertText(tempIndex, text);
       if (props.currentChapter?.id) {
         saveChapterContent(props.currentChapter.id, content);
       }
@@ -438,7 +410,7 @@ watch(content, (newValue) => {
   }
   isModified = true;
   saveTimeout = setTimeout(() => {
-    if (isModified){
+    if (isModified) {
       saveChapterContent(props.currentChapter.id, content.value);
     }
   }, 2000);
@@ -474,7 +446,7 @@ const editorOptions = {
     },
     clipboard: {
       matchers: [
-        [Node.TEXT_NODE, function(node, delta) {
+        [Node.TEXT_NODE, function (node, delta) {
           return new Delta().insert(node.data);
         }]
       ]
@@ -718,7 +690,7 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
               };
               selectedTextRange.value = range;
               showFloatingToolbar.value = true;
-            } else {  
+            } else {
               const toolbar = document.querySelector('.floating-toolbar');
               const rewriteInput = document.querySelector('.rewrite-input');
 
@@ -942,54 +914,55 @@ const handleAIContinue = async () => {
 </script>
 
 <style scoped>
-  .floating-toolbar {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    padding: 4px;
-    z-index: 1000;
-    transition: all 0.3s ease;
-  }
-  
-  .floating-toolbar button {
-    margin: 0 4px;
-    padding: 4px 8px;
-    border: none;
-    background: #f0f0f0;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .floating-toolbar button:hover {
-    background: #e0e0e0;
-  }
-  
-  .rewrite-btn {
-    position: relative;
-  }
-  
-  .rewrite-input {
-    margin-left: 8px;
-    padding: 4px 8px;
-    border: 1px solid #ddd;
-    border-radius: 2px;
-    width: 0;
-    opacity: 0;
-    transition: all 0.3s ease;
-  }
-  
-  .floating-toolbar.show-rewrite .rewrite-btn {
-    transform: translateX(10px);
-  }
-  
-  .floating-toolbar.show-rewrite .rewrite-input {
-    width: 200px;
-    opacity: 1;
-  }
+.floating-toolbar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.floating-toolbar button {
+  margin: 0 4px;
+  padding: 4px 8px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.floating-toolbar button:hover {
+  background: #e0e0e0;
+}
+
+.rewrite-btn {
+  position: relative;
+}
+
+.rewrite-input {
+  margin-left: 8px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  width: 0;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.floating-toolbar.show-rewrite .rewrite-btn {
+  transform: translateX(10px);
+}
+
+.floating-toolbar.show-rewrite .rewrite-input {
+  width: 200px;
+  opacity: 1;
+}
+
 .text-editor-container {
   @apply flex flex-col h-full;
 }
