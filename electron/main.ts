@@ -8,6 +8,12 @@ import { spawn } from 'child_process';
 let fileServerProcess: ReturnType<typeof spawn> | null = null;
 
 function startFileServer() {
+  // 先确保之前的进程已终止
+  if (fileServerProcess) {
+    fileServerProcess.kill();
+    fileServerProcess = null;
+  }
+
   // 根据运行环境确定文件服务器脚本路径
   const serverPath = process.env.VITE_DEV_SERVER_URL
     ? path.join(__dirname, '../local-file-server.js')
@@ -26,15 +32,18 @@ function startFileServer() {
 
     fileServerProcess?.on('error', (error) => {
       console.error(`文件服务器启动失败: ${error.message}`);
+      fileServerProcess = null;
     });
 
     fileServerProcess?.on('exit', (code) => {
       if (code !== 0) {
         console.error(`文件服务器异常退出，退出码: ${code}`);
       }
+      fileServerProcess = null;
     });
   } catch (error) {
     console.error(`启动文件服务器失败: ${error}`);
+    fileServerProcess = null;
   }
 }
 
@@ -216,7 +225,11 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit()
+    // 确保所有窗口关闭时清理文件服务器进程
+    if (fileServerProcess) {
+      fileServerProcess.kill();
+    }
+    app.quit();
   }
 })
 
@@ -289,5 +302,9 @@ ipcMain.on('maximize-window', (event) => {
 
 ipcMain.on('close-window', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) win.close();
+  if (win) {
+    // 确保窗口关闭前清理相关资源
+    win.webContents.session.clearCache();
+    win.close();
+  }
 });
