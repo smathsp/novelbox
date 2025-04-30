@@ -1,5 +1,5 @@
 <template>
-  <Searcher :quill="quillEditor?.getQuill()" v-model:showSearchReplace="showSearchReplace" />
+  <Searcher v-if="quillEditor?.getQuill()" :quill="quillEditor.getQuill()" v-model:showSearchReplace="showSearchReplace" />
   <div class="text-editor-container">
     <OutlineDetail v-if="showDetailOutline" :show="showDetailOutline" :current-chapter="currentChapter"
       :current-book="currentBook" @close="showDetailOutline = false" />
@@ -335,7 +335,6 @@ const editorOptions = {
           'undo', 'redo',
           { 'size': ['small', false, 'large'] },
           { 'search': 'search', 'style': 'background-color:white !important;color:black !important;' },
-          'export-word'
         ],
         ['ai-generate']
       ],
