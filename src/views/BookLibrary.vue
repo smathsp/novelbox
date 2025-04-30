@@ -184,6 +184,12 @@
             <textarea v-model="tempPromptConfig.rewrite" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="rewriteTextarea"></textarea>
           </div>
         </div>
+        <div class="form-group">
+          <label>更新设定提示词</label>
+          <div class="prompt-input-group">
+            <textarea v-model="tempPromptConfig.updateSettings" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="updateSettingsTextarea"></textarea>
+          </div>
+        </div>
       </div>
       <div class="variable-toolbar">
         <button @click="insertVariable('title', $event)">书名</button>
@@ -466,8 +472,9 @@ const chapterTextarea = ref<HTMLTextAreaElement>()
 const continueTextarea = ref<HTMLTextAreaElement>()
 const expandTextarea = ref<HTMLTextAreaElement>()
 const abbreviateTextarea = ref<HTMLTextAreaElement>()
+const updateSettingsTextarea = ref<HTMLTextAreaElement>()
 
-import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt } from '../constants'
+import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
 
 const promptConfig = reactive({
@@ -480,6 +487,7 @@ const promptConfig = reactive({
   expand: defaultExpandPrompt,
   abbreviate: defaultAbbreviatePrompt,
   rewrite: defaultRewriteAbbreviatePrompt,
+  updateSettings: defaultUpdateSettingsPrompt,
 })
 
 // 加载提示词配置
@@ -504,7 +512,8 @@ const tempPromptConfig = reactive({
   continue: promptConfig.continue,
   expand: promptConfig.expand,
   abbreviate: promptConfig.abbreviate,
-  rewrite: promptConfig.rewrite
+  rewrite: promptConfig.rewrite,
+  updateSettings: promptConfig.updateSettings
 })
 
 // 检查是否有未保存的修改

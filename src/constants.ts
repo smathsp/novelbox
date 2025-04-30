@@ -15,3 +15,5 @@ export const defaultExpandPrompt = '请根据以下内容扩写小说段落，�
 export const defaultAbbreviatePrompt = '请根据以下内容缩写小说段落，只对需要缩写的内容进行缩写，保留核心情节和关键描写，确保只生成段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要缩写的段落:${content}'
 
 export const defaultRewriteAbbreviatePrompt = '请根据以下内容改写小说段落，只对需要改写的内容进行改写，确保只改写后段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要改写的段落:${content}'
+
+export const defaultUpdateSettingsPrompt = '请根据以下内容更新小说设定，确保只更新设定不生成任何其他信息。\n小说名:${title}\n简介:${description}\n当前设定:${settings}\n更新要求:${content}'
