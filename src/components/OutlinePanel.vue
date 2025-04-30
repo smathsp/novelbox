@@ -19,21 +19,31 @@
         <textarea v-model="settingContent" class="content-input" placeholder="写一些关于设定的想法，越多越好..." @input="saveContent"
           :disabled="isGenerating"></textarea>
         <div class="button-group">
-          <button @click="generateAIContent('setting')" class="ai-btn"
-            :disabled="isGenerating || !settingContent.trim()">
-            {{ isGenerating ? '生成中...' : 'AI润色' }}
-          </button>
+          <div class="ai-dropdown">
+            <button @click="toggleAIMenu('setting')" class="ai-btn"
+              :disabled="isGenerating || !settingContent.trim()">
+              {{ isGenerating ? '生成中...' : 'AI功能' }}
+            </button>
+            <div v-if="showAIMenu && activeAIMenuTab === 'setting'" class="ai-dropdown-menu">
+              <button @click="generateAIContent('setting')" class="dropdown-item">
+                AI润色
+              </button>
+              <button @click="" class="dropdown-item">
+                更新设定
+              </button>
+            </div>
+          </div>
           <button @click="saveContent" class="save-btn" :disabled="!settingContent.trim()">
             保存
           </button>
         </div>
       </div>
       <div v-show="activeTab === 'plot'" class="tab-panel">
-        <textarea v-model="plotContent" class="content-input" placeholder="将小说的完整设定填写在这里点击“AI润色”按钮..."
+        <textarea v-model="plotContent" class="content-input" placeholder="将小说的完整设定填写在这里点击'AI功能'按钮..."
           @input="saveContent" :disabled="isGenerating"></textarea>
         <div class="button-group">
           <button @click="generateAIContent('plot')" class="ai-btn" :disabled="isGenerating || !plotContent.trim()">
-            {{ isGenerating ? '生成中...' : 'AI润色' }}
+            {{ isGenerating ? '生成中...' : 'AI生成' }}
           </button>
           <button @click="saveContent" class="save-btn" :disabled="!plotContent.trim()">
             保存
@@ -64,6 +74,19 @@ const activeTab = ref('setting')
 const settingContent = ref('')
 const plotContent = ref('')
 const isGenerating = ref(false)
+// 添加下拉菜单状态变量
+const showAIMenu = ref(false)
+const activeAIMenuTab = ref('')
+
+// 添加切换AI菜单的函数
+const toggleAIMenu = (tab: 'setting' | 'plot') => {
+  if (activeAIMenuTab.value === tab && showAIMenu.value) {
+    showAIMenu.value = false
+  } else {
+    activeAIMenuTab.value = tab
+    showAIMenu.value = true
+  }
+}
 
 let aiService: AIService
 
@@ -201,7 +224,7 @@ watch(() => props.show, (newVal) => {
 }
 
 .ai-btn {
-  @apply flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px];
 }
 
 .save-btn {
@@ -215,6 +238,30 @@ watch(() => props.show, (newVal) => {
 
   to {
     transform: translateX(0);
+  }
+}
+
+.ai-dropdown {
+  @apply relative flex-1;
+}
+
+.ai-dropdown-menu {
+  @apply absolute bottom-full left-0 w-full bg-white border border-gray-200 rounded shadow-lg mb-1 overflow-hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+.dropdown-item {
+  @apply w-full px-4 py-2 text-left text-gray-700 hover:bg-blue-50 hover:text-blue-600;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 </style>
