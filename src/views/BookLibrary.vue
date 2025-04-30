@@ -553,6 +553,7 @@ const resetToDefault = () => {
     tempPromptConfig.expand = defaultExpandPrompt
     tempPromptConfig.abbreviate = defaultAbbreviatePrompt
     tempPromptConfig.rewrite = defaultRewriteAbbreviatePrompt
+    tempPromptConfig.updateSettings = defaultUpdateSettingsPrompt
   }).catch(() => {
     // 用户点击取消按钮，不做任何操作
   })

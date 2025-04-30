@@ -16,4 +16,4 @@ export const defaultAbbreviatePrompt = '请根据以下内容缩写小说段落�
 
 export const defaultRewriteAbbreviatePrompt = '请根据以下内容改写小说段落，只对需要改写的内容进行改写，确保只改写后段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要改写的段落:${content}'
 
-export const defaultUpdateSettingsPrompt = '请根据以下内容更新小说设定，确保只更新设定不生成任何其他信息。\n小说名:${title}\n简介:${description}\n当前设定:${settings}\n更新要求:${content}'
+export const defaultUpdateSettingsPrompt = '请总结本章内容中的新增设定和改变的设定，包括人物设定、能力设定、物品设定等等，并更新小说的当前设定，确保只生成更新后的设定不生成任何其他信息。\n小说名:${title}\n简介:${description}\n当前设定:${settings}\n本章内容:${chapter}'

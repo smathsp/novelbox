@@ -28,7 +28,7 @@
               <button @click="generateAIContent('setting')" class="dropdown-item">
                 AI润色
               </button>
-              <button @click="" class="dropdown-item">
+              <button @click="updateSettings" class="dropdown-item">
                 更新设定
               </button>
             </div>
@@ -59,7 +59,7 @@ import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AIService from '../services/aiService'
 import { BookConfigService } from '../services/bookConfigService'
-import { defaultSettingsPrompt, defaultOutlinePrompt } from '../constants'
+import { defaultSettingsPrompt, defaultOutlinePrompt, defaultUpdateSettingsPrompt } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
 import { AIConfigService } from '../services/aiConfigService'
 
@@ -89,6 +89,76 @@ const toggleAIMenu = (tab: 'setting' | 'plot') => {
 }
 
 let aiService: AIService
+
+// 添加更新设定函数
+const updateSettings = async () => {
+  if (!settingContent.value.trim() || isGenerating.value) return
+
+  isGenerating.value = true
+  try {
+    // 从AIConfigService获取AI服务配置
+    const aiConfig = await AIConfigService.loadConfig()
+    aiService = new AIService({
+      provider: aiConfig.provider || 'openai',
+      model: aiConfig.model || 'gpt-3.5-turbo',
+      apiKey: aiConfig.apiKey || '',
+      proxyUrl: aiConfig.proxyUrl || ''
+    })
+
+    // 使用props传入的currentBook对象
+    if (!props.currentBook) {
+      ElMessage.error('无法获取当前书籍信息')
+      return
+    }
+    const currentBook = props.currentBook
+
+    // 从PromptConfigService获取提示词配置
+    const promptConfig = await PromptConfigService.getPromptByName('updateSettings') || defaultUpdateSettingsPrompt
+
+    // 获取当前打开的章节内容
+    const findCurrentChapter = (chapters: any[]): any | undefined => {
+      for (const ch of chapters) {
+        if (ch.type === 'chapter' && ch.content) return ch
+        if (ch.children) {
+          const found = findCurrentChapter(ch.children)
+          if (found) return found
+        }
+      }
+    }
+
+    const currentChapter = findCurrentChapter(props.currentBook.content || [])
+    if (!currentChapter) {
+      ElMessage.error('请先打开一个章节')
+      return
+    }
+
+    // 替换提示词中的变量
+    const prompt = promptConfig
+      .replace('${title}', currentBook.title)
+      .replace('${description}', currentBook.description || '')
+      .replace('${settings}', settingContent.value)
+      .replace('${chapter}', currentChapter.content)
+
+    const response = await aiService.generateText(prompt)
+    if (response.error) {
+      console.error('AI生成失败:', response.error)
+      ElMessage.error(`AI生成失败：${response.error}`)
+      return
+    }
+
+    settingContent.value = `${settingContent.value}\n>>>>>>>>>>>>>>>>>>>>>>>>>>>\n${response.text}`
+    saveContent()
+  } catch (error) {
+    console.error('AI生成失败:', error)
+    if (error instanceof Error) {
+      ElMessage.error(`AI生成失败：${error.message}`)
+    } else {
+      ElMessage.error('AI生成失败，请检查网络连接和API配置')
+    }
+  } finally {
+    isGenerating.value = false
+  }
+}
 
 const generateAIContent = async (type: 'setting' | 'plot') => {
   const content = type === 'setting' ? settingContent.value : plotContent.value
