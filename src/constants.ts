@@ -4,7 +4,7 @@ export const defaultSettingsPrompt = '根据以下内容，生成一个引人入
 
 export const defaultOutlinePrompt = '根据以下内容，生成一个引人入胜的小说剧情大纲，确保只生成大纲不生成任何其他信息:\n小说名:${title}\n,简介:${description}\n,大纲要求:${content}'
 
-export const defaultChapterOutlinePrompt = '根据以下内容，生成本章节细纲，确保只生成本章节细纲不生成任何其他信息，小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,本章大致剧情:${content}'
+export const defaultChapterOutlinePrompt = '根据以下内容，生成本章节细纲，确保只生成本章节细纲不生成任何其他信息，小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,前文:${previous}\n,本章大致剧情:${content}'
 
 export const defaultChapterPrompt = '请根据以下信息生成一个完整的小说章节，要求字数在2500字以上，确保只生成小说章节不生成任何其他信息。\n小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n本章细纲:${chapterOutline}'
 

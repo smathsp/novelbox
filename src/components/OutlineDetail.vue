@@ -58,6 +58,8 @@ const validateChapterNumber = () => {
 
 let aiService: AIService
 
+import { findPreviousChapterContent } from '../services/promptVariableService'
+
 const generateAIContent = async () => {
   if (!detailContent.value.trim() || isGenerating.value || !chapterNumber.value) return
 
@@ -84,6 +86,10 @@ const generateAIContent = async () => {
       return
     }
 
+    // 获取前一章内容
+    const currentChapterNumber = parseInt(chapterNumber.value)
+    const previousContent = findPreviousChapterContent(props.currentBook.content || [], currentChapterNumber)
+
     // 从PromptConfigService获取提示词配置
     const promptConfig = await PromptConfigService.getPromptByName('chapterOutline') || defaultChapterOutlinePrompt
 
@@ -95,6 +101,7 @@ const generateAIContent = async () => {
       .replace('${description}', props.currentBook.description || '')
       .replace('${settings}', props.currentBook.setting || '')
       .replace('${outline}', props.currentBook.plot || '')
+      .replace('${previous}', previousContent)
 
     const response = await aiService.generateText(prompt)
     if (response.error) {
