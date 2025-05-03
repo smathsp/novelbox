@@ -199,6 +199,7 @@
         <button @click="insertVariable('chapterOutline', $event)">章节细纲</button>
         <button @click="insertVariable('chapter', $event)">章节内容</button>
         <button @click="insertVariable('content', $event)">当前内容</button>
+        <button @click="insertVariable('previous', $event)">前文</button>
       </div>
       <div class="modal-footer">
         <button @click="closePromptConfigModal" class="cancel-btn">取消</button>
@@ -611,6 +612,9 @@ const insertVariable = (type: string, event: MouseEvent) => {
       break
     case 'content':
       variable = '${content}'
+      break
+    case 'previous':
+      variable = '${previous}'
       break
   }
   // 根据当前文本区域更新对应的tempPromptConfig属性
