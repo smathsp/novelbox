@@ -1,4 +1,6 @@
 <template>
+  <Searcher v-if="quillEditor?.getQuill()" :quill="quillEditor.getQuill()"
+    v-model:showSearchReplace="showSearchReplace" />
   <div class="text-editor-container">
     <OutlineDetail v-if="showDetailOutline" :show="showDetailOutline" :current-chapter="currentChapter"
       :current-book="currentBook" @close="showDetailOutline = false" />
@@ -15,18 +17,6 @@
         内容保存成功
       </div>
 
-      <div class="search-replace-toolbar" v-show="showSearchReplace">
-        <div class="search-replace-inputs">
-          <input type="text" v-model="searchText" placeholder="查找内容" class="search-input" />
-          <input type="text" v-model="replaceText" placeholder="替换内容" class="replace-input" />
-        </div>
-        <div class="search-replace-buttons">
-          <button @click="findNext" class="search-btn">查找</button>
-          <button @click="replace" class="replace-btn">替换</button>
-          <button @click="replaceAll" class="replace-all-btn">全部替换</button>
-          <button @click="closeSearchReplace" class="close-btn">关闭</button>
-        </div>
-      </div>
       <QuillEditor v-model:content="content" :options="editorOptions" contentType="html" theme="snow"
         @textChange="onTextChange" class="h-full" ref="quillEditor" />
       <div class="ai-continue-toolbar">
@@ -54,6 +44,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import { QuillEditor } from '@vueup/vue-quill'
+import Searcher from './Searcher.vue'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import OutlineDetail from './OutlineDetail.vue'
 import AIService from '../services/aiService'
@@ -162,8 +153,13 @@ const expandSelectedText = async () => {
       return;
     }
     const text = response.text;
-    editor.deleteText(selectedTextRange.value.index, selectedTextRange.value.length);
-    editor.insertText(selectedTextRange.value.index, text);
+    editor.updateContents(
+      new Delta()
+        .retain(selectedTextRange.value.index)
+        .delete(selectedTextRange.value.length)
+        .insert(text),
+      'user'
+    );
     if (props.currentChapter?.id) {
       saveChapterContent(props.currentChapter.id, content.value);
     }
@@ -298,8 +294,13 @@ const condenseSelectedText = async () => {
       return;
     }
     const text = response.text;
-    editor.deleteText(selectedTextRange.value.index, selectedTextRange.value.length);
-    editor.insertText(selectedTextRange.value.index, text);
+    editor.updateContents(
+      new Delta()
+        .retain(selectedTextRange.value.index)
+        .delete(selectedTextRange.value.length)
+        .insert(text),
+      'user'
+    );
     if (props.currentChapter?.id) {
       saveChapterContent(props.currentChapter.id, content.value);
     }
@@ -383,8 +384,6 @@ const quillEditor = ref()
 const showSearchReplace = ref(false)
 const showDetailOutline = ref(false)
 const showSaveToast = ref(false)
-const searchText = ref('')
-const replaceText = ref('')
 
 const editorOptions = {
   modules: {
@@ -410,7 +409,6 @@ const editorOptions = {
           'undo', 'redo',
           { 'size': ['small', false, 'large'] },
           { 'search': 'search', 'style': 'background-color:white !important;color:black !important;' },
-          'export-word'
         ],
         ['ai-generate']
       ],
@@ -520,16 +518,14 @@ const editorOptions = {
               }
               generatedText += text;
               if (!complete) {
-                editor.insertText(editor.getLength() - 1, text);
+                editor.updateContents(new Delta().retain(editor.getLength() - 1).insert(text), 'user');
               }
-
             });
 
           } catch (error) {
             ElMessage.error(error.message);
             return;
           }
-
         },
         undo: function () {
           quillEditor.value.getQuill().history.undo();
@@ -697,66 +693,6 @@ const onTextChange = () => {
   calculateWordCount()
 }
 
-const findNext = () => {
-  if (!searchText.value) return
-
-  const editor = quillEditor.value.getQuill()
-  const text = editor.getText()
-  const currentSelection = editor.getSelection()
-
-  let searchIndex = currentSelection ? currentSelection.index + 1 : 0
-  const index = text.indexOf(searchText.value, searchIndex)
-
-  if (index !== -1) {
-    editor.setSelection(index, searchText.value.length)
-  } else {
-    // 如果从当前位置找不到，从头开始找
-    const firstIndex = text.indexOf(searchText.value)
-    if (firstIndex !== -1) {
-      editor.setSelection(firstIndex, searchText.value.length)
-    }
-  }
-}
-
-const replace = () => {
-  if (!searchText.value) return
-
-  const editor = quillEditor.value.getQuill()
-  const selection = editor.getSelection()
-
-  if (selection) {
-    const text = editor.getText(selection.index, selection.length)
-    if (text === searchText.value) {
-      editor.deleteText(selection.index, selection.length)
-      editor.insertText(selection.index, replaceText.value)
-      findNext()
-    }
-  }
-}
-
-const replaceAll = () => {
-  if (!searchText.value) return
-
-  const editor = quillEditor.value.getQuill()
-  const text = editor.getText()
-  let searchIndex = 0
-
-  while (true) {
-    const index = text.indexOf(searchText.value, searchIndex)
-    if (index === -1) break
-
-    editor.deleteText(index, searchText.value.length)
-    editor.insertText(index, replaceText.value)
-    searchIndex = index + replaceText.value.length
-  }
-}
-
-const closeSearchReplace = () => {
-  showSearchReplace.value = false
-  searchText.value = ''
-  replaceText.value = ''
-}
-
 const handleAIContinue = async () => {
   if (isGenerating.value) {
     generationTask.value?.cancel?.();
@@ -787,7 +723,7 @@ const handleAIContinue = async () => {
 
     let generatedText = '';
     isGenerating.value = true;
-  
+
 
     // 直接保存生成任务的引用
     generationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
@@ -932,44 +868,6 @@ const handleAIContinue = async () => {
 
 .file-path {
   @apply ml-2 text-gray-600 self-center text-sm truncate;
-}
-
-.search-replace-toolbar {
-  @apply absolute top-0 right-0 z-10 bg-white shadow-md rounded-bl-lg p-3 flex flex-col gap-2;
-  width: 320px;
-}
-
-.search-replace-inputs {
-  @apply flex flex-col gap-2;
-}
-
-.search-input,
-.replace-input {
-  @apply w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-black !important;
-}
-
-.search-replace-buttons {
-  @apply flex gap-2;
-}
-
-.search-btn,
-.replace-btn,
-.replace-all-btn,
-.close-btn {
-  @apply px-3 py-1.5 rounded text-sm font-medium;
-}
-
-.search-btn {
-  @apply bg-blue-500 text-white hover:bg-blue-600;
-}
-
-.replace-btn,
-.replace-all-btn {
-  @apply bg-green-500 text-white hover:bg-green-600 !important;
-}
-
-.close-btn {
-  @apply bg-gray-500 text-white hover:bg-gray-600;
 }
 
 :deep(.ql-formats) {
