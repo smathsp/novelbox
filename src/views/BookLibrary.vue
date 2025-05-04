@@ -246,6 +246,7 @@ import { useRouter } from 'vue-router'
 import { BookConfigService } from '../services/bookConfigService'
 
 import { Book } from '../services/bookConfigService'
+import { replaceBookNameAndDescPromptVariables } from '../services/promptVariableService'
 
 const router = useRouter()
 const books = ref<Book[]>([])
@@ -679,9 +680,7 @@ const generateDescription = async () => {
   try {
     const aiService = new AIService(aiConfig)
     // 获取提示词配置，如果不存在则使用默认提示词
-    const promptConfig = await PromptConfigService.getPromptByName('bookNameAndDesc') || defaultBookNameAndDescPrompt
-    // 替换提示词中的变量
-    const prompt = promptConfig.replace('${content}', aiInputContent.value || '')
+    const prompt = await replaceBookNameAndDescPromptVariables(aiInputContent.value)
     const result = await aiService.generateText(prompt)
 
     if (result.error) {

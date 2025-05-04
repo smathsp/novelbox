@@ -59,11 +59,9 @@ import OutlineDetail from './OutlineDetail.vue'
 import AIService from '../services/aiService'
 import { ElMessage } from 'element-plus'
 import Delta from 'quill-delta';
-import { DocumentService } from '../services/documentService';
-import { defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt } from '../constants'
+import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables, replaceChapterPromptVariables, replaceContinuePromptVariables } from '../services/promptVariableService'
 import { type Book, type Chapter } from '../services/bookConfigService'
 import { AIConfigService } from '../services/aiConfigService'
-import { PromptConfigService } from '../services/promptConfigService'
 
 
 const content = ref('')
@@ -150,16 +148,12 @@ const expandSelectedText = async () => {
     proxyUrl: aiConfig.proxyUrl || ''
   });
 
-  // 获取提示词配置
-  const promptConfig = await PromptConfigService.getPromptByName('expand') || defaultExpandPrompt;
-
-  // 替换提示词中的变量
-  const prompt = promptConfig
-    .replace('${title}', props.currentBook.title)
-    .replace('${settings}', props.currentBook.setting || '')
-    .replace('${chapterOutline}', chapter.detailOutline.detailContent || '')
-    .replace('${chapter}', editor.getText())
-    .replace('${content}', selectedText);
+  const prompt = await replaceExpandPromptVariables(
+    props.currentBook,
+    chapter,
+    editor.getText(),
+    selectedText
+  );
 
   try {
     const response = await aiService.generateText(prompt);
@@ -223,26 +217,6 @@ const rewriteSelectedText = async () => {
     }
     const currentBook = props.currentBook;
 
-    // 获取当前章节的细纲
-    const findChapterDetail = (chapters: any[]): any => {
-      for (const ch of chapters) {
-        if (ch.id === props.currentChapter?.id) return ch;
-        if (ch.children) {
-          const found = findChapterDetail(ch.children);
-          if (found) return found;
-        }
-      }
-    };
-
-    const chapter = findChapterDetail(currentBook.content || []);
-    if (!chapter?.detailOutline?.detailContent) {
-      ElMessage.error('请先编写本章细纲');
-      return;
-    }
-
-    const selectedText = editor.getText(tempIndex, tempLength);
-    const content = `${selectedText}\n改写指导：${rewriteContent.value}`;
-
     const aiConfig = await AIConfigService.loadConfig();
     const aiService = new AIService({
       provider: aiConfig.provider || 'openai',
@@ -251,18 +225,14 @@ const rewriteSelectedText = async () => {
       proxyUrl: aiConfig.proxyUrl || ''
     });
 
-    // 获取改写提示词配置
-    const promptConfig = await PromptConfigService.getPromptByName('rewrite') || defaultRewriteAbbreviatePrompt;
-
-    // 替换提示词中的变量
-    const prompt = promptConfig
-      .replace('${title}', currentBook.title)
-      .replace('${settings}', currentBook.setting || '')
-      .replace('${chapterOutline}', chapter.detailOutline.detailContent || '')
-      .replace('${chapter}', editor.getText())
-      .replace('${content}', content);
-
-    console.log(prompt)
+    const selectedText = editor.getText(tempIndex, tempLength);
+    const prompt = await replaceRewritePromptVariables(
+      currentBook,
+      props.currentChapter,
+      editor.getText(),
+      selectedText,
+      rewriteContent.value
+    );
 
     try {
       const response = await aiService.generateText(prompt);
@@ -274,7 +244,7 @@ const rewriteSelectedText = async () => {
       editor.deleteText(tempIndex, tempLength);
       editor.insertText(tempIndex, text);
       if (props.currentChapter?.id) {
-        saveChapterContent(props.currentChapter.id, content);
+        saveChapterContent(props.currentChapter.id, content.value);
       }
       rewriteContent.value = '';
       showRewriteInput.value = false;
@@ -306,23 +276,6 @@ const condenseSelectedText = async () => {
   }
   const currentBook = props.currentBook;
 
-  // 获取当前章节的细纲
-  const findChapterDetail = (chapters: any[]): any => {
-    for (const ch of chapters) {
-      if (ch.id === props.currentChapter?.id) return ch;
-      if (ch.children) {
-        const found = findChapterDetail(ch.children);
-        if (found) return found;
-      }
-    }
-  };
-
-  const chapter = findChapterDetail(currentBook.content || []);
-  if (!chapter?.detailOutline?.detailContent) {
-    ElMessage.error('请先编写本章细纲');
-    return;
-  }
-
   const aiConfig = await AIConfigService.loadConfig();
   const aiService = new AIService({
     provider: aiConfig.provider || 'openai',
@@ -331,18 +284,14 @@ const condenseSelectedText = async () => {
     proxyUrl: aiConfig.proxyUrl || ''
   });
 
-  // 获取提示词配置
-  const promptConfig = await PromptConfigService.getPromptByName('abbreviate') || defaultAbbreviatePrompt;
-
-  // 替换提示词中的变量
-  const prompt = promptConfig
-    .replace('${title}', currentBook.title)
-    .replace('${settings}', currentBook.setting || '')
-    .replace('${chapterOutline}', chapter.detailOutline.detailContent || '')
-    .replace('${chapter}', editor.getText())
-    .replace('${content}', selectedText);
-
   try {
+    const prompt = await replaceAbbreviatePromptVariables(
+      currentBook,
+      props.currentChapter,
+      editor.getText(),
+      selectedText
+    );
+
     const response = await aiService.generateText(prompt);
     if (response.error) {
       ElMessage.error(`AI缩写失败：${response.error}`);
@@ -537,23 +486,6 @@ const editorOptions = {
 
           isAIGenerating.value = true;
 
-          // 获取当前章节的细纲
-          const findChapterDetail = (chapters: any[]): any => {
-            for (const ch of chapters) {
-              if (ch.id === props.currentChapter?.id) return ch;
-              if (ch.children) {
-                const found = findChapterDetail(ch.children);
-                if (found) return found;
-              }
-            }
-          };
-
-          const chapter = findChapterDetail(currentBook.content || []);
-          if (!chapter?.detailOutline?.detailContent) {
-            ElMessage.error('请先编写本章细纲');
-            return;
-          }
-
           const aiConfig = await AIConfigService.loadConfig();
           const aiService = new AIService({
             provider: aiConfig.provider || 'openai',
@@ -562,42 +494,42 @@ const editorOptions = {
             proxyUrl: aiConfig.proxyUrl || ''
           });
 
-          // 获取提示词配置
-          const promptConfig = await PromptConfigService.getPromptByName('chapter') || defaultChapterPrompt;
 
-          // 替换提示词中的变量
-          const prompt = promptConfig
-            .replace('${title}', currentBook.title)
-            .replace('${description}', currentBook.description || '')
-            .replace('${settings}', currentBook.setting || '')
-            .replace('${outline}', currentBook.plot || '')
-            .replace('${chapterOutline}', chapter.detailOutline.detailContent || '');
+          try {
+            const prompt = await replaceChapterPromptVariables(currentBook, props.currentChapter);
 
-          let generatedText = '';
-          const editor = quillEditor.value.getQuill();
+            let generatedText = '';
+            const editor = quillEditor.value.getQuill();
 
-          aiGenerationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
-            if (error) {
-              ElMessage.error(`AI生成失败：${error}`);
-              isAIGenerating.value = false;
-              aiGenerationTask.value = null;
-              initAIGenerateButton();
-              return;
-            }
-            if (complete) {
-              isAIGenerating.value = false;
-              aiGenerationTask.value = null;
-              ElMessage.success('AI生成完成');
-              if (props.currentChapter?.id) {
-                saveChapterContent(props.currentChapter.id, content.value);
+            aiGenerationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
+              if (error) {
+                ElMessage.error(`AI生成失败：${error}`);
+                isAIGenerating.value = false;
+                aiGenerationTask.value = null;
+                initAIGenerateButton();
+                return;
               }
-              initAIGenerateButton();
-            }
-            generatedText += text;
-            if (!complete) {
-              editor.insertText(editor.getLength() - 1, text);
-            }
-          });
+              if (complete) {
+                isAIGenerating.value = false;
+                aiGenerationTask.value = null;
+                ElMessage.success('AI生成完成');
+                if (props.currentChapter?.id) {
+                  saveChapterContent(props.currentChapter.id, content.value);
+                }
+                initAIGenerateButton();
+              }
+              generatedText += text;
+              if (!complete) {
+                editor.insertText(editor.getLength() - 1, text);
+              }
+
+            });
+
+          } catch (error) {
+            ElMessage.error(error.message);
+            return;
+          }
+
         },
         undo: function () {
           quillEditor.value.getQuill().history.undo();
@@ -834,23 +766,6 @@ const handleAIContinue = async () => {
 
   if (!props.currentChapter?.id) return;
 
-  // 获取当前章节的细纲
-  const findChapterDetail = (chapters: any[]): any => {
-    for (const ch of chapters) {
-      if (ch.id === props.currentChapter?.id) return ch;
-      if (ch.children) {
-        const found = findChapterDetail(ch.children);
-        if (found) return found;
-      }
-    }
-  };
-
-  const chapter = findChapterDetail(props.currentBook?.content || []);
-  if (!chapter?.detailOutline?.detailContent) {
-    ElMessage.error('请先编写本章细纲');
-    return;
-  }
-
   const editor = quillEditor.value.getQuill();
   const currentContent = editor.getText();
 
@@ -862,23 +777,18 @@ const handleAIContinue = async () => {
     proxyUrl: aiConfig.proxyUrl || ''
   });
 
-  // 获取提示词配置
-  const promptConfig = await PromptConfigService.getPromptByName('continue') || defaultContinuePrompt;
-
-  // 替换提示词中的变量
-  const prompt = promptConfig
-    .replace('${title}', props.currentBook?.title || '')
-    .replace('${description}', props.currentBook?.description || '')
-    .replace('${settings}', props.currentBook?.setting || '')
-    .replace('${outline}', props.currentBook?.plot || '')
-    .replace('${chapterOutline}', chapter.detailOutline.detailContent || '')
-    .replace('${chapter}', currentContent || '')
-    .replace('${content}', continuePrompt.value || '');
-
-  let generatedText = '';
-  isGenerating.value = true;
-
   try {
+    const prompt = await replaceContinuePromptVariables(
+      props.currentBook,
+      props.currentChapter,
+      currentContent,
+      continuePrompt.value
+    );
+
+    let generatedText = '';
+    isGenerating.value = true;
+  
+
     // 直接保存生成任务的引用
     generationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
       if (error) {

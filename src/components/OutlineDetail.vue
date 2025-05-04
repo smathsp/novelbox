@@ -32,8 +32,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AIService from '../services/aiService'
-import { defaultChapterOutlinePrompt } from '../constants'
-import { PromptConfigService } from '../services/promptConfigService'
+import { replacePromptVariables } from '../services/promptVariableService'
 import { AIConfigService } from '../services/aiConfigService'
 import { BookConfigService, type Chapter, type Book } from '../services/bookConfigService'
 
@@ -57,8 +56,6 @@ const validateChapterNumber = () => {
 }
 
 let aiService: AIService
-
-import { findPreviousChapterContent } from '../services/promptVariableService'
 
 const generateAIContent = async () => {
   if (!detailContent.value.trim() || isGenerating.value || !chapterNumber.value) return
@@ -86,23 +83,7 @@ const generateAIContent = async () => {
       return
     }
 
-    // 获取前一章内容
-    const currentChapterNumber = parseInt(chapterNumber.value)
-    const previousContent = findPreviousChapterContent(props.currentBook.content || [], currentChapterNumber)
-
-    // 从PromptConfigService获取提示词配置
-    const promptConfig = await PromptConfigService.getPromptByName('chapterOutline') || defaultChapterOutlinePrompt
-
-    // 替换提示词中的变量
-    const content = `第${chapterNumber.value}章\n${detailContent.value}`
-    const prompt = promptConfig
-      .replace('${content}', content)
-      .replace('${title}', props.currentBook.title)
-      .replace('${description}', props.currentBook.description || '')
-      .replace('${settings}', props.currentBook.setting || '')
-      .replace('${outline}', props.currentBook.plot || '')
-      .replace('${previous}', previousContent)
-
+    const prompt = await replacePromptVariables(props.currentBook, parseInt(chapterNumber.value), detailContent.value)
     const response = await aiService.generateText(prompt)
     if (response.error) {
       console.error('AI生成失败:', response.error)

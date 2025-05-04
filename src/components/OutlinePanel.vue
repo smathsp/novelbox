@@ -59,9 +59,8 @@ import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AIService from '../services/aiService'
 import { BookConfigService } from '../services/bookConfigService'
-import { defaultSettingsPrompt, defaultOutlinePrompt, defaultUpdateSettingsPrompt } from '../constants'
-import { PromptConfigService } from '../services/promptConfigService'
 import { AIConfigService } from '../services/aiConfigService'
+import { replaceUpdateSettingsPromptVariables, replaceSettingsPromptVariables, replaceOutlinePromptVariables } from '../services/promptVariableService'
 
 const props = defineProps<{
   show: boolean
@@ -110,35 +109,8 @@ const updateSettings = async () => {
       ElMessage.error('无法获取当前书籍信息')
       return
     }
-    const currentBook = props.currentBook
 
-    // 从PromptConfigService获取提示词配置
-    const promptConfig = await PromptConfigService.getPromptByName('updateSettings') || defaultUpdateSettingsPrompt
-
-    // 获取当前打开的章节内容
-    const findCurrentChapter = (chapters: any[]): any | undefined => {
-      for (const ch of chapters) {
-        if (ch.type === 'chapter' && ch.content) return ch
-        if (ch.children) {
-          const found = findCurrentChapter(ch.children)
-          if (found) return found
-        }
-      }
-    }
-
-    const currentChapter = findCurrentChapter(props.currentBook.content || [])
-    if (!currentChapter) {
-      ElMessage.error('请先打开一个章节')
-      return
-    }
-
-    // 替换提示词中的变量
-    const prompt = promptConfig
-      .replace('${title}', currentBook.title)
-      .replace('${description}', currentBook.description || '')
-      .replace('${settings}', settingContent.value)
-      .replace('${chapter}', currentChapter.content)
-
+    const prompt = await replaceUpdateSettingsPromptVariables(props.currentBook, settingContent.value)
     const response = await aiService.generateText(prompt)
     if (response.error) {
       console.error('AI生成失败:', response.error)
@@ -183,16 +155,10 @@ const generateAIContent = async (type: 'setting' | 'plot') => {
     const currentBook = props.currentBook
 
     // 从PromptConfigService获取提示词配置
-    const promptConfig = type === 'setting'
-      ? await PromptConfigService.getPromptByName('settings') || defaultSettingsPrompt
-      : await PromptConfigService.getPromptByName('outline') || defaultOutlinePrompt
-
-    // 替换提示词中的变量
-    const prompt = promptConfig
-      .replace('${content}', content)
-      .replace('${title}', currentBook.title)
-      .replace('${description}', currentBook.description || '')
-
+    const prompt = type === 'setting'
+      ? await replaceSettingsPromptVariables(currentBook, content)
+      : await replaceOutlinePromptVariables(currentBook, content)
+    
     const response = await aiService.generateText(prompt)
     if (response.error) {
       console.error('AI生成失败:', response.error)
