@@ -237,8 +237,13 @@ const rewriteSelectedText = async () => {
         return;
       }
       const text = response.text;
-      editor.deleteText(tempIndex, tempLength);
-      editor.insertText(tempIndex, text);
+      editor.updateContents(
+        new Delta()
+          .retain(tempIndex)
+          .delete(tempLength)
+          .insert(text),
+        'user'
+      );
       if (props.currentChapter?.id) {
         saveChapterContent(props.currentChapter.id, content.value);
       }
@@ -742,7 +747,12 @@ const handleAIContinue = async () => {
       }
       generatedText += text;
       if (!complete) {
-        editor.insertText(editor.getLength() - 1, text);
+        editor.updateContents(
+          new Delta()
+            .retain(editor.getLength() - 1)
+            .insert(text),
+          'user'
+        );
       }
     });
 
