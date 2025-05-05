@@ -16,7 +16,7 @@
           </button>
         </div>
       </div>
-      <OutlinePanel :show="showOutline" @close="showOutline = false" :currentBook="currentBook" />
+      <OutlinePanel :show="showOutline" @close="showOutline = false" :currentBook="currentBook" :currentChapter="currentChapter" />
       <OutlineDetail :show="showDetailOutline" @close="showDetailOutline = false" :currentBook="currentBook" :currentChapter="currentChapter" />
     </div>
     <div class="editor-main">

@@ -65,6 +65,7 @@ import { replaceUpdateSettingsPromptVariables, replaceSettingsPromptVariables, r
 const props = defineProps<{
   show: boolean
   currentBook: any
+  currentChapter?: any
 }>()
 
 defineEmits(['close'])
@@ -110,7 +111,17 @@ const updateSettings = async () => {
       return
     }
 
-    const prompt = await replaceUpdateSettingsPromptVariables(props.currentBook, settingContent.value)
+    let prompt;
+    if (props.currentChapter) {
+      const bookWithCurrentChapter = {
+        ...props.currentBook,
+        content: [props.currentChapter]
+      }
+      prompt = await replaceUpdateSettingsPromptVariables(bookWithCurrentChapter, settingContent.value)
+    } else {
+      prompt = await replaceUpdateSettingsPromptVariables(props.currentBook, settingContent.value)
+    }
+
     const response = await aiService.generateText(prompt)
     if (response.error) {
       console.error('AI生成失败:', response.error)
