@@ -10,10 +10,12 @@
       <div class="form-group">
         <label for="aiProvider">AI服务商</label>
         <select id="aiProvider" v-model="aiConfig.provider" class="form-select" @change="updateModelOptions">
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-          <option value="gemini">Gemini</option>
-          <option value="deepseek">Deepseek</option>
+          <option v-for="provider in AI_PROVIDERS" :key="provider.id" :value="provider.id">
+            {{ provider.name }}
+          </option>
+          <option v-for="provider in aiConfig.customProviders" :key="provider.name" :value="provider.name">
+            {{ provider.name }}
+          </option>
         </select>
       </div>
       <div class="form-group">
@@ -37,7 +39,39 @@
     <div class="modal-footer">
       <button @click="closeAIConfigModal" class="cancel-btn">取消</button>
       <button @click="() => showPromptConfigModal = true" class="config-btn mr-2">提示词配置</button>
+      <button @click="() => showCustomProviderModal = true" class="config-btn mr-2">自定义服务商</button>
       <button @click="saveAIConfig" class="save-btn">保存</button>
+    </div>
+  </div>
+
+  <!-- 自定义服务商配置对话框 -->
+  <div class="modal-overlay" v-if="showCustomProviderModal" @click="closeCustomProviderModal"></div>
+  <div class="modal" v-if="showCustomProviderModal">
+    <div class="modal-header">
+      <h2 class="modal-title">自定义服务商配置</h2>
+      <button @click="closeCustomProviderModal" class="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="providerName">名称</label>
+        <input type="text" id="providerName" v-model="customProvider.name" placeholder="请输入服务商名称" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label for="apiDomain">API域名</label>
+        <input type="text" id="apiDomain" v-model="customProvider.apiDomain" placeholder="请输入API域名（例如：api.example.com）" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label for="apiPath">API路径</label>
+        <input type="text" id="apiPath" v-model="customProvider.apiPath" placeholder="请输入API路径（例如：/v1/chat/completions）" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label for="model">模型</label>
+        <input type="text" id="model" v-model="customProvider.model" placeholder="请输入模型名称" class="form-input" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button @click="closeCustomProviderModal" class="cancel-btn">取消</button>
+      <button @click="saveCustomProvider" class="save-btn">保存</button>
     </div>
   </div>
 
@@ -151,7 +185,7 @@
 <script setup lang="ts">
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { ref, reactive, onMounted, computed } from 'vue'
-import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt } from '../constants'
+import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt, AI_PROVIDERS, type AIProvider, type AIModel } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
 import { AIConfigService } from '../services/aiConfigService'
 
@@ -164,6 +198,14 @@ interface AIConfig {
   model: string
   apiKey: string
   proxyUrl: string
+  customProviders?: CustomProvider[]
+}
+
+interface CustomProvider {
+  name: string
+  apiDomain: string
+  apiPath: string
+  model: string
 }
 
 interface ModelOption {
@@ -177,7 +219,8 @@ const aiConfig = reactive<AIConfig>({
   provider: 'openai',
   model: '',
   apiKey: '',
-  proxyUrl: ''
+  proxyUrl: '',
+  customProviders: []
 })
 
 const promptConfig = reactive({
@@ -209,6 +252,13 @@ const tempPromptConfig = reactive({
 
 const modelOptions = ref<ModelOption[]>([])
 const showPromptConfigModal = ref(false)
+const showCustomProviderModal = ref(false)
+const customProvider = reactive({
+  name: '',
+  apiDomain: '',
+  apiPath: '',
+  model: ''
+})
 const lastFocusedTextarea = ref<HTMLTextAreaElement>()
 
 const bookNameDescTextarea = ref<HTMLTextAreaElement>()
@@ -261,27 +311,20 @@ const closeAIConfigModal = () => {
 }
 
 const updateModelOptions = () => {
-  if (aiConfig.provider === 'openai') {
-    modelOptions.value = [
-      { id: 'gpt-4', name: 'GPT-4' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
-    ]
-  } else if (aiConfig.provider === 'deepseek') {
-    modelOptions.value = [
-      { id: 'deepseek-chat', name: 'Deepseek V3' },
-      { id: 'deepseek-reasoner', name: 'Deepseek R1' }
-    ]
-  } else if (aiConfig.provider === 'anthropic') {
-    modelOptions.value = [
-      { id: 'claude-2', name: 'Claude 2' },
-      { id: 'claude-instant', name: 'Claude Instant' }
-    ]
-  } else if (aiConfig.provider === 'gemini') {
-    modelOptions.value = [
-      { id: 'gemini-2.0-flash', name: 'Gemini Flash' },
-      { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking' },
-      { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' },
-    ]
+  const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider)
+  if (provider) {
+    modelOptions.value = provider.models
+  } else {
+    // 查找自定义服务商
+    const customProvider = aiConfig.customProviders?.find(p => p.name === aiConfig.provider)
+    if (customProvider) {
+      modelOptions.value = [{
+        id: customProvider.model,
+        name: customProvider.model
+      }]
+    } else {
+      modelOptions.value = []
+    }
   }
 
   // 如果当前选中的模型不在新的选项列表中，选择第一个模型
@@ -294,6 +337,55 @@ const updateModelOptions = () => {
 const hasUnsavedChanges = computed(() => {
   return Object.keys(promptConfig).some(key => promptConfig[key] !== tempPromptConfig[key])
 })
+
+const closeCustomProviderModal = () => {
+  showCustomProviderModal.value = false
+  // 重置表单
+  customProvider.name = ''
+  customProvider.apiDomain = ''
+  customProvider.apiPath = ''
+  customProvider.model = ''
+}
+
+const saveCustomProvider = () => {
+  if (!customProvider.name.trim()) {
+    ElMessage.error('请输入服务商名称')
+    return
+  }
+  if (!customProvider.apiDomain.trim()) {
+    ElMessage.error('请输入API域名')
+    return
+  }
+  if (!customProvider.apiPath.trim()) {
+    ElMessage.error('请输入API路径')
+    return
+  }
+  if (!customProvider.model.trim()) {
+    ElMessage.error('请输入模型名称')
+    return
+  }
+  
+  // 创建新的自定义服务商配置
+  const newProvider = {
+    name: customProvider.name.trim(),
+    apiDomain: customProvider.apiDomain.trim(),
+    apiPath: customProvider.apiPath.trim(),
+    model: customProvider.model.trim()
+  }
+
+  // 添加到配置中
+  if (!aiConfig.customProviders) {
+    aiConfig.customProviders = []
+  }
+  aiConfig.customProviders.push(newProvider)
+
+  // 更新服务商选项
+  updateModelOptions()
+
+  // 关闭弹窗
+  closeCustomProviderModal()
+  ElMessage.success('自定义服务商添加成功')
+}
 
 const closePromptConfigModal = () => {
   if (hasUnsavedChanges.value) {

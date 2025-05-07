@@ -1,3 +1,52 @@
+// AI服务商配置
+export interface AIProvider {
+  id: string
+  name: string
+  models: AIModel[]
+}
+
+export interface AIModel {
+  id: string
+  name: string
+}
+
+export const AI_PROVIDERS: AIProvider[] = [
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    models: [
+      { id: 'gpt-4', name: 'GPT-4' },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+    ]
+  },
+  {
+    id: 'anthropic',
+    name: 'Anthropic',
+    models: [
+      { id: 'claude-2', name: 'Claude 2' },
+      { id: 'claude-instant', name: 'Claude Instant' }
+    ]
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    models: [
+      { id: 'gemini-2.0-flash', name: 'Gemini Flash' },
+      { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking' },
+      { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' }
+    ]
+  },
+  {
+    id: 'deepseek',
+    name: 'Deepseek',
+    models: [
+      { id: 'deepseek-chat', name: 'Deepseek V3' },
+      { id: 'deepseek-reasoner', name: 'Deepseek R1' }
+    ]
+  }
+]
+
+// 提示词配置
 export const defaultBookNameAndDescPrompt = '根据以下内容，生成一个引人入胜的小说书名和针对这个书名的简介，确保只生成书名和简介不生成任何其他信息，输出格式是：\n书名:\n简介:\n\n${content}'
 
 export const defaultSettingsPrompt = '根据以下内容，生成一个引人入胜的小说设定，确保只生成设定不生成任何其他信息:\n小说名:${title}\n,简介:${description}\n,设定要求:${content}'
