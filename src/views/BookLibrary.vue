@@ -1,5 +1,6 @@
 <template>
   <div class="book-library-page">
+    <AIConfigModal v-model:showAIConfigModal="showAIConfigModal" />
     <div class="library-header">
       <div class="header-left">
         <button @click="showAIConfigModal = true" class="config-btn">
@@ -79,134 +80,6 @@
         <button @click="deleteBook" class="delete-confirm-btn">确认删除</button>
       </div>
     </div>
-    <!-- AI配置对话框 -->
-    <div class="modal-overlay" v-if="showAIConfigModal" @click="closeAIConfigModal"></div>
-    <div class="modal" v-if="showAIConfigModal">
-      <div class="modal-header">
-        <h2 class="modal-title">AI服务配置</h2>
-        <button @click="closeAIConfigModal" class="modal-close">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="aiProvider">AI服务商</label>
-          <select id="aiProvider" v-model="aiConfig.provider" class="form-select" @change="updateModelOptions">
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="gemini">Gemini</option>
-            <option value="deepseek">Deepseek</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="aiModel">AI模型</label>
-          <select id="aiModel" v-model="aiConfig.model" class="form-select">
-            <option v-for="model in modelOptions" :key="model.id" :value="model.id">
-              {{ model.name }}
-            </option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="apiKey">API密钥</label>
-          <input type="password" id="apiKey" v-model="aiConfig.apiKey" placeholder="请输入API密钥" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label for="proxyUrl">代理服务器</label>
-          <input type="text" id="proxyUrl" v-model="aiConfig.proxyUrl"
-            placeholder="请输入代理服务器地址（例如：http://127.0.0.1:7890）" class="form-input" />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button @click="closeAIConfigModal" class="cancel-btn">取消</button>
-        <button @click="() => showPromptConfigModal = true" class="config-btn mr-2">提示词配置</button>
-        <button @click="saveAIConfig" class="save-btn">保存</button>
-      </div>
-    </div>
-
-    <!-- 提示词配置对话框 -->
-    <div class="modal-overlay" v-if="showPromptConfigModal" @click="closePromptConfigModal"></div>
-    <div class="modal prompt-config-modal" v-if="showPromptConfigModal">
-      <div class="modal-header">
-        <h2 class="modal-title">提示词配置</h2>
-        <button @click="closePromptConfigModal" class="modal-close">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>生成书名简介提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.bookNameAndDesc" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement"
-              class="form-textarea prompt-textarea" ref="bookNameDescTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>生成设定提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.settings" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="settingsTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>生成剧情大纲提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.outline" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="outlineTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>生成章节细纲提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.chapterOutline" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="chapterOutlineTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>生成小说章节提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.chapter" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="chapterTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>续写提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.continue" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="continueTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>扩写提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.expand" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="expandTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>缩写提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.abbreviate" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="abbreviateTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>改写提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.rewrite" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="rewriteTextarea"></textarea>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>更新设定提示词</label>
-          <div class="prompt-input-group">
-            <textarea v-model="tempPromptConfig.updateSettings" @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement" class="form-textarea prompt-textarea" ref="updateSettingsTextarea"></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="variable-toolbar">
-        <button @click="insertVariable('title', $event)">书名</button>
-        <button @click="insertVariable('desc', $event)">简介</button>
-        <button @click="insertVariable('settings', $event)">设定</button>
-        <button @click="insertVariable('outline', $event)">大纲</button>
-        <button @click="insertVariable('chapterOutline', $event)">章节细纲</button>
-        <button @click="insertVariable('chapter', $event)">章节内容</button>
-        <button @click="insertVariable('content', $event)">当前内容</button>
-        <button @click="insertVariable('previous', $event)">前文</button>
-      </div>
-      <div class="modal-footer">
-        <button @click="closePromptConfigModal" class="cancel-btn">取消</button>
-        <button @click="resetToDefault" class="reset-btn">恢复默认值</button>
-        <button @click="savePromptConfig" class="save-btn">保存</button>
-      </div>
-    </div>
 
     <!-- AI生成对话框 -->
     <div class="modal-overlay" v-if="showAIGenModal" @click="showAIGenModal = false"></div>
@@ -244,7 +117,7 @@ import { ElMessageBox } from 'element-plus'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { BookConfigService } from '../services/bookConfigService'
-
+import AIConfigModal from '../components/AIConfigModal.vue'
 import { Book } from '../services/bookConfigService'
 import { replaceBookNameAndDescPromptVariables } from '../services/promptVariableService'
 
@@ -368,297 +241,17 @@ const closeModal = () => {
   newBook.description = ''
 }
 
-interface AIConfig {
-  provider: string
-  model: string
-  apiKey: string
-  proxyUrl: string
-}
-
-interface ModelOption {
-  id: string
-  name: string
-}
-
 const showAIConfigModal = ref(false)
 const showAIGenModal = ref(false)
-const modelOptions = ref<ModelOption[]>([])
 const aiInputContent = ref('')
 const aiOutputContent = ref('')
 const isGenerating = ref(false)
 
-const aiConfig = reactive<AIConfig>({
-  provider: 'openai',
-  model: '',
-  apiKey: '',
-  proxyUrl: ''
-})
-
-import { AIConfigService } from '../services/aiConfigService'
-
-const updateModelOptions = () => {
-  if (aiConfig.provider === 'openai') {
-    modelOptions.value = [
-      { id: 'gpt-4', name: 'GPT-4' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
-    ]
-  } else if (aiConfig.provider === 'deepseek') {
-    modelOptions.value = [
-      { id: 'deepseek-chat', name: 'Deepseek V3' },
-      { id: 'deepseek-reasoner', name: 'Deepseek R1' }
-    ]
-  } else if (aiConfig.provider === 'anthropic') {
-    modelOptions.value = [
-      { id: 'claude-2', name: 'Claude 2' },
-      { id: 'claude-instant', name: 'Claude Instant' }
-    ]
-  } else if (aiConfig.provider === 'gemini') {
-    modelOptions.value = [
-      { id: 'gemini-2.0-flash', name: 'Gemini Flash' },
-      { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking' },
-      { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' },
-    ]
-  } 
-
-  // 如果当前选中的模型不在新的选项列表中，选择第一个模型
-  if (!modelOptions.value.find(option => option.id === aiConfig.model)) {
-    aiConfig.model = modelOptions.value[0]?.id || ''
-  }
-}
-
-const closeAIConfigModal = () => {
-  showAIConfigModal.value = false
-}
-
-const closePromptConfigModal = () => {
-  if (hasUnsavedChanges.value) {
-    ElMessageBox.confirm('有未保存的修改，是否放弃修改？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }).then(() => {
-      // 放弃修改，重置临时配置
-      Object.keys(promptConfig).forEach(key => {
-        tempPromptConfig[key] = promptConfig[key]
-      })
-      showPromptConfigModal.value = false
-    }).catch(() => {
-      // 用户点击取消按钮，不做任何操作
-    })
-  } else {
-    showPromptConfigModal.value = false
-  }
-}
-
-const saveAIConfig = async () => {
-  if (!aiConfig.apiKey.trim()) {
-    ElMessage.error('请输入API密钥')
-    return
-  }
-
-  try {
-    await AIConfigService.saveConfig(aiConfig)
-    showAIConfigModal.value = false
-  } catch (error) {
-    console.error('保存AI配置失败:', error)
-    ElMessage.error(error.message || '保存AI配置失败')
-  }
-}
-
-const showPromptConfigModal = ref(false)
-const bookNameDescTextarea = ref<HTMLTextAreaElement>()
-const settingsTextarea = ref<HTMLTextAreaElement>()
-const outlineTextarea = ref<HTMLTextAreaElement>()
-const chapterOutlineTextarea = ref<HTMLTextAreaElement>()
-const chapterTextarea = ref<HTMLTextAreaElement>()
-const continueTextarea = ref<HTMLTextAreaElement>()
-const expandTextarea = ref<HTMLTextAreaElement>()
-const abbreviateTextarea = ref<HTMLTextAreaElement>()
-const updateSettingsTextarea = ref<HTMLTextAreaElement>()
-
-import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt } from '../constants'
-import { PromptConfigService } from '../services/promptConfigService'
-
-const promptConfig = reactive({
-  bookNameAndDesc: defaultBookNameAndDescPrompt,
-  settings: defaultSettingsPrompt,
-  outline: defaultOutlinePrompt,
-  chapterOutline: defaultChapterOutlinePrompt,
-  chapter: defaultChapterPrompt,
-  continue: defaultContinuePrompt,
-  expand: defaultExpandPrompt,
-  abbreviate: defaultAbbreviatePrompt,
-  rewrite: defaultRewriteAbbreviatePrompt,
-  updateSettings: defaultUpdateSettingsPrompt,
-})
-
-// 加载提示词配置
-const loadPromptConfig = async () => {
-  try {
-    const config = await PromptConfigService.loadConfig()
-    Object.assign(promptConfig, config)
-  } catch (error) {
-    console.error('加载提示词配置失败:', error)
-    ElMessage.error(error.message || '加载提示词配置失败')
-
-  }
-}
-
-// 临时存储提示词配置的修改
-const tempPromptConfig = reactive({
-  bookNameAndDesc: promptConfig.bookNameAndDesc,
-  settings: promptConfig.settings,
-  outline: promptConfig.outline,
-  chapterOutline: promptConfig.chapterOutline,
-  chapter: promptConfig.chapter,
-  continue: promptConfig.continue,
-  expand: promptConfig.expand,
-  abbreviate: promptConfig.abbreviate,
-  rewrite: promptConfig.rewrite,
-  updateSettings: promptConfig.updateSettings
-})
-
-// 检查是否有未保存的修改
-const hasUnsavedChanges = computed(() => {
-  return Object.keys(promptConfig).some(key => promptConfig[key] !== tempPromptConfig[key])
-})
-
-const savePromptConfig = async () => {
-  try {
-    // 将临时配置同步到正式配置
-    Object.keys(promptConfig).forEach(key => {
-      promptConfig[key] = tempPromptConfig[key]
-    })
-    // 保存到文件
-    await PromptConfigService.saveConfig(promptConfig)
-    showPromptConfigModal.value = false
-    ElMessage.success('提示词配置已保存')
-  } catch (error) {
-    console.error('保存提示词配置失败:', error)
-    ElMessage.error(error.message || '保存提示词配置失败')
-  }
-}
-
-const resetToDefault = () => {
-  ElMessageBox.confirm('确定要恢复所有提示词为默认值吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(() => {
-    // 重置所有提示词为默认值
-    tempPromptConfig.bookNameAndDesc = defaultBookNameAndDescPrompt
-    tempPromptConfig.settings = defaultSettingsPrompt
-    tempPromptConfig.outline = defaultOutlinePrompt
-    tempPromptConfig.chapterOutline = defaultChapterOutlinePrompt
-    tempPromptConfig.chapter = defaultChapterPrompt
-    tempPromptConfig.continue = defaultContinuePrompt
-    tempPromptConfig.expand = defaultExpandPrompt
-    tempPromptConfig.abbreviate = defaultAbbreviatePrompt
-    tempPromptConfig.rewrite = defaultRewriteAbbreviatePrompt
-    tempPromptConfig.updateSettings = defaultUpdateSettingsPrompt
-  }).catch(() => {
-    // 用户点击取消按钮，不做任何操作
-  })
-}
-
-const lastFocusedTextarea = ref<HTMLTextAreaElement>()
-
-const getCurrentTextarea = (): HTMLTextAreaElement | undefined => {
-  // 优先使用最后记录的焦点元素
-  if (lastFocusedTextarea.value) {
-    return lastFocusedTextarea.value
-  }
-
-  const activeElement = document.activeElement
-
-  // 优先检查当前焦点元素是否是有效的文本区域
-  if (activeElement instanceof HTMLTextAreaElement) {
-    return activeElement
-  }
-  const textareas = document.getElementsByClassName('prompt-textarea')
-  for (let i = 0; i < textareas.length; i++) {
-    if (textareas[i] === activeElement) {
-      return textareas[i] as HTMLTextAreaElement
-    }
-  }
-
-  // 如果都不可用，返回第一个文本区域（如果存在）
-  return bookNameDescTextarea.value || undefined
-}
-
-const insertVariable = (type: string, event: MouseEvent) => {
-  const textarea = lastFocusedTextarea.value || getCurrentTextarea()
-  const cursorPos = textarea.selectionStart
-  const textBefore = textarea.value.substring(0, cursorPos)
-  const textAfter = textarea.value.substring(textarea.selectionEnd)
-  let variable = '${content}'
-  switch (type) {
-    case 'title':
-      variable = '${title}'
-      break
-    case 'desc':
-      variable = '${description}'
-      break
-    case 'settings':
-      variable = '${settings}'
-      break
-    case 'outline':
-      variable = '${outline}'
-      break
-    case 'chapterOutline':
-      variable = '${chapterOutline}'
-      break
-    case 'chapter':
-      variable = '${chapter}'
-      break
-    case 'content':
-      variable = '${content}'
-      break
-    case 'previous':
-      variable = '${previous}'
-      break
-  }
-  // 根据当前文本区域更新对应的tempPromptConfig属性
-  const newValue = textBefore + variable + textAfter
-  if (textarea === bookNameDescTextarea.value) {
-    tempPromptConfig.bookNameAndDesc = newValue
-  } else if (textarea === settingsTextarea.value) {
-    tempPromptConfig.settings = newValue
-  } else if (textarea === outlineTextarea.value) {
-    tempPromptConfig.outline = newValue
-  } else if (textarea === chapterOutlineTextarea.value) {
-    tempPromptConfig.chapterOutline = newValue
-  } else if (textarea === chapterTextarea.value) {
-    tempPromptConfig.chapter = newValue
-  } else if (textarea === continueTextarea.value) {
-    tempPromptConfig.continue = newValue
-  } else if (textarea === expandTextarea.value) {
-    tempPromptConfig.expand = newValue 
-  } else if (textarea === abbreviateTextarea.value) {
-    tempPromptConfig.abbreviate = newValue
-  }
-
-  // 更新文本区域的值和光标位置
-  textarea.value = newValue
-  textarea.focus()
-  textarea.selectionStart = cursorPos + variable.length
-  textarea.selectionEnd = cursorPos + variable.length
-}
-
 // 初始化数据和配置
 onMounted(async () => {
   try {
-    // 加载AI配置
-    const config = await AIConfigService.loadConfig()
-    Object.assign(aiConfig, config)
-    
     // 加载书籍数据
     loadBooks()
-    updateModelOptions()
-    
-    // 加载提示词配置
-    await loadPromptConfig()
-    Object.assign(tempPromptConfig, promptConfig)
   } catch (error) {
     console.error('初始化失败:', error)
   }
@@ -667,19 +260,19 @@ onMounted(async () => {
 import { ElMessage } from 'element-plus'
 
 import AIService from '../services/aiService'
+import { AIConfigService } from '../services/aiConfigService'
 
 const generateDescription = async () => {
-  if (!aiConfig.apiKey) {
-    ElMessage.warning('请先配置AI服务')
-    showAIGenModal.value = false
-    showAIConfigModal.value = true
-    return
-  }
+  const aiConfig = await AIConfigService.loadConfig();
+  const aiService = new AIService({
+    provider: aiConfig.provider || 'openai',
+    model: aiConfig.model || 'gpt-3.5-turbo',
+    apiKey: aiConfig.apiKey || '',
+    proxyUrl: aiConfig.proxyUrl || ''
+  });
 
   isGenerating.value = true
   try {
-    const aiService = new AIService(aiConfig)
-    // 获取提示词配置，如果不存在则使用默认提示词
     const prompt = await replaceBookNameAndDescPromptVariables(aiInputContent.value)
     const result = await aiService.generateText(prompt)
 
@@ -789,11 +382,6 @@ const applyAIContent = () => {
   @apply text-gray-500;
 }
 
-/* 模态框样式 */
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 z-40;
-}
-
 .modal {
   position: fixed !important;
   top: 50% !important;
@@ -809,6 +397,10 @@ const applyAIContent = () => {
   display: flex !important;
   flex-direction: column !important;
   max-height: 95vh !important;
+}
+
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-40;
 }
 
 .modal-header {
@@ -835,10 +427,6 @@ const applyAIContent = () => {
   @apply mb-4;
 }
 
-.form-group label {
-  @apply block text-sm font-medium text-gray-700 mb-1;
-}
-
 .form-input,
 .form-textarea {
   @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent box-border;
@@ -860,56 +448,8 @@ const applyAIContent = () => {
   height: 10rem;
 }
 
-.prompt-config-modal {
-  @apply w-[800px] max-w-[90vw];
-}
-
-.prompt-input-group {
-  @apply relative;
-}
-
-.variable-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-}
-
-.variable-toolbar button {
-  padding: 6px 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  background-color: white;
-  color: #495057;
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.variable-toolbar button:hover {
-  background-color: #e9ecef;
-  border-color: #ced4da;
-  color: #212529;
-}
-
-.variable-toolbar button:active {
-  background-color: #dee2e6;
-  transform: translateY(1px);
-}
-
 .modal-actions {
   @apply flex gap-2;
-}
-
-.config-btn {
-  @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors;
 }
 
 .cancel-btn {
@@ -958,10 +498,6 @@ const applyAIContent = () => {
 
 .config-btn {
   @apply flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors;
-}
-
-.form-select {
-  @apply w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
 }
 
 .apply-btn {
