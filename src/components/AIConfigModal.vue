@@ -40,6 +40,7 @@
       <button @click="closeAIConfigModal" class="cancel-btn">取消</button>
       <button @click="() => showPromptConfigModal = true" class="config-btn mr-2">提示词配置</button>
       <button @click="() => showCustomProviderModal = true" class="config-btn mr-2">自定义服务商</button>
+      <button v-if="isEditingCustomProvider" @click="deleteCustomProvider" class="delete-btn mr-2">删除</button>
       <button @click="saveAIConfig" class="save-btn">保存</button>
     </div>
   </div>
@@ -71,6 +72,7 @@
     </div>
     <div class="modal-footer">
       <button @click="closeCustomProviderModal" class="cancel-btn">取消</button>
+      <button v-if="isEditingCustomProvider" @click="deleteCustomProvider" class="delete-btn mr-2">删除</button>
       <button @click="saveCustomProvider" class="save-btn">保存</button>
     </div>
   </div>
@@ -267,6 +269,8 @@ const customProvider = reactive({
   apiPath: '',
   model: ''
 })
+
+const isEditingCustomProvider = ref(false)
 const lastFocusedTextarea = ref<HTMLTextAreaElement>()
 
 const bookNameDescTextarea = ref<HTMLTextAreaElement>()
@@ -371,13 +375,15 @@ const updateModelOptions = async () => {
   const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider)
   if (provider) {
     modelOptions.value = provider.models
+    isEditingCustomProvider.value = false
   } else {
     // 查找自定义服务商
-    const customProvider = aiConfig.customProviders?.find(p => p.name === aiConfig.provider)
-    if (customProvider) {
+    const foundCustomProvider = aiConfig.customProviders?.find(p => p.name === aiConfig.provider)
+    if (foundCustomProvider) {
+      isEditingCustomProvider.value = true
       modelOptions.value = [{
-        id: customProvider.model,
-        name: customProvider.model
+        id: foundCustomProvider.model,
+        name: foundCustomProvider.model
       }]
     } else {
       modelOptions.value = []
@@ -405,6 +411,34 @@ const closeCustomProviderModal = () => {
   customProvider.apiDomain = ''
   customProvider.apiPath = ''
   customProvider.model = ''
+  isEditingCustomProvider.value = false
+}
+
+const deleteCustomProvider = async () => {
+  try {
+    // 从自定义服务商列表中删除
+    const index = aiConfig.customProviders?.findIndex(p => p.name === aiConfig.provider)
+    if (index !== -1) {
+      aiConfig.customProviders?.splice(index, 1)
+      
+      // 删除后切换到默认服务商
+      aiConfig.provider = 'openai'
+      await updateModelOptions()
+      
+      // 保存全局配置
+      const globalConfig = {
+        provider: aiConfig.provider,
+        customProviders: aiConfig.customProviders
+      }
+      await AIConfigService.saveConfig('global', globalConfig as any)
+      
+      closeCustomProviderModal()
+      ElMessage.success('自定义服务商已删除')
+    }
+  } catch (error) {
+    console.error('删除自定义服务商失败:', error)
+    ElMessage.error('删除自定义服务商失败')
+  }
 }
 
 const saveCustomProvider = async () => {
@@ -689,6 +723,10 @@ const getCurrentTextarea = (): HTMLTextAreaElement | undefined => {
 
 .save-btn {
   @apply px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors dark:bg-blue-700 dark:hover:bg-blue-800;
+}
+
+.delete-btn {
+  @apply px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors dark:bg-red-700 dark:hover:bg-red-800;
 }
 
 .config-btn {
