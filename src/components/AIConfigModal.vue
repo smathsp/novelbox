@@ -201,6 +201,14 @@ interface AIConfig {
   customProviders?: CustomProvider[]
 }
 
+interface ProviderConfig {
+  provider?: string
+  model: string
+  apiKey: string
+  proxyUrl: string
+  customProviders?: CustomProvider[]
+}
+
 interface CustomProvider {
   name: string
   apiDomain: string
@@ -281,15 +289,43 @@ onMounted(async () => {
 })
 
 const loadAIConfig = async () => {
-  // 加载AI配置
-  const config = await AIConfigService.loadConfig()
-  Object.assign(aiConfig, config)
-  console.log('aiConfig', aiConfig)
-  // 加载提示词配置
-  await loadPromptConfig()
-  Object.assign(tempPromptConfig, promptConfig)
+  try {
+    // 加载全局配置（包含当前选择的服务商和自定义服务商列表）
+    const globalConfig = await AIConfigService.loadProviderConfig('global')
+    
+    // 加载自定义服务商列表
+    if (globalConfig.customProviders) {
+      aiConfig.customProviders = globalConfig.customProviders
+    }
+    
+    // 设置当前选择的服务商
+    if (globalConfig.provider) {
+      aiConfig.provider = globalConfig.provider
+    }
+    
+    // 加载当前服务商的配置
+    await loadCurrentProviderConfig()
+    
+    // 加载提示词配置
+    await loadPromptConfig()
+    Object.assign(tempPromptConfig, promptConfig)
+  } catch (error) {
+    console.error('加载AI配置失败:', error)
+  }
 }
 
+
+// 加载当前选择的服务商配置
+const loadCurrentProviderConfig = async () => {
+  try {
+    const providerConfig = await AIConfigService.loadProviderConfig(aiConfig.provider)
+    aiConfig.model = providerConfig.model || ''
+    aiConfig.apiKey = providerConfig.apiKey || ''
+    aiConfig.proxyUrl = providerConfig.proxyUrl || ''
+  } catch (error) {
+    console.error('加载服务商配置失败:', error)
+  }
+}
 
 const saveAIConfig = async () => {
   if (!aiConfig.apiKey.trim()) {
@@ -298,8 +334,29 @@ const saveAIConfig = async () => {
   }
 
   try {
-    await AIConfigService.saveConfig(aiConfig)
+    // 保存当前服务商的配置
+    const providerConfig: ProviderConfig = {
+      model: aiConfig.model,
+      apiKey: aiConfig.apiKey,
+      proxyUrl: aiConfig.proxyUrl
+    }
+    
+    // 保存当前服务商的配置
+    await AIConfigService.saveConfig(aiConfig.provider, providerConfig)
+    
+    // 保存全局配置（当前选择的服务商和自定义服务商列表）
+    // 注意：这里我们需要创建一个临时对象来保存全局配置
+    // 因为AIConfigService.saveConfig只保存特定服务商的配置
+    const globalConfig = {
+      provider: aiConfig.provider,
+      customProviders: aiConfig.customProviders
+    }
+    
+    // 保存全局配置到特殊的键名
+    await AIConfigService.saveConfig('global', globalConfig as any)
+    
     closeAIConfigModal()
+    ElMessage.success('AI配置已保存')
   } catch (error) {
     console.error('保存AI配置失败:', error)
     ElMessage.error(error.message || '保存AI配置失败')
@@ -310,7 +367,7 @@ const closeAIConfigModal = () => {
   emit('update:showAIConfigModal', false)
 }
 
-const updateModelOptions = () => {
+const updateModelOptions = async () => {
   const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider)
   if (provider) {
     modelOptions.value = provider.models
@@ -327,6 +384,9 @@ const updateModelOptions = () => {
     }
   }
 
+  // 加载当前服务商的配置
+  await loadCurrentProviderConfig()
+  
   // 如果当前选中的模型不在新的选项列表中，选择第一个模型
   if (!modelOptions.value.find(option => option.id === aiConfig.model)) {
     aiConfig.model = modelOptions.value[0]?.id || ''
@@ -347,7 +407,7 @@ const closeCustomProviderModal = () => {
   customProvider.model = ''
 }
 
-const saveCustomProvider = () => {
+const saveCustomProvider = async () => {
   if (!customProvider.name.trim()) {
     ElMessage.error('请输入服务商名称')
     return
@@ -379,12 +439,26 @@ const saveCustomProvider = () => {
   }
   aiConfig.customProviders.push(newProvider)
 
-  // 更新服务商选项
-  updateModelOptions()
-
-  // 关闭弹窗
-  closeCustomProviderModal()
-  ElMessage.success('自定义服务商添加成功')
+  // 保存全局配置，确保自定义服务商信息被持久化
+  const globalConfig = {
+    provider: aiConfig.provider,
+    customProviders: aiConfig.customProviders
+  }
+  
+  try {
+    // 保存全局配置到特殊的键名
+    await AIConfigService.saveConfig('global', globalConfig as any)
+    
+    // 更新服务商选项
+    await updateModelOptions()
+    
+    // 关闭弹窗
+    closeCustomProviderModal()
+    ElMessage.success('自定义服务商添加成功')
+  } catch (error) {
+    console.error('保存自定义服务商失败:', error)
+    ElMessage.error('保存自定义服务商失败')
+  }
 }
 
 const closePromptConfigModal = () => {

@@ -2,11 +2,16 @@ import { FileStorageService } from './fileStorageService';
 import { WorkspaceService } from './workspaceservice';
 import { WorkspaceError } from '../errors/workspaceError';
 
-type AIConfig = {
-  provider: string;
+type ProviderConfig = {
+  provider?: string;
+  customProviders?: any[];
   model: string;
   apiKey: string;
   proxyUrl: string;
+};
+
+type AIConfig = {
+  [provider: string]: ProviderConfig;
 };
 
 export class AIConfigService {
@@ -15,10 +20,12 @@ export class AIConfigService {
     return `${workspacePath}\\config\\aiconfig.json`;
   }
 
-  static async saveConfig(config: AIConfig): Promise<void> {
+  static async saveConfig(provider: string, config: ProviderConfig): Promise<void> {
     try {
       const configPath = this.getConfigPath();
-      const configStr = JSON.stringify(config, null, 2);
+      let currentConfig = await this.loadConfig();
+      currentConfig[provider] = config;
+      const configStr = JSON.stringify(currentConfig, null, 2);
       await FileStorageService.writeFile(configPath, configStr);
     } catch (error) {
       if (error instanceof WorkspaceError) {
@@ -37,12 +44,16 @@ export class AIConfigService {
       if (error instanceof WorkspaceError) {
         throw error;
       }
-      return {
-        provider: '',
-        model: '',
-        apiKey: '',
-        proxyUrl: ''
-      };
+      return {};
     }
+  }
+
+  static async loadProviderConfig(provider: string): Promise<ProviderConfig> {
+    const config = await this.loadConfig();
+    return config[provider] || {
+      model: '',
+      apiKey: '',
+      proxyUrl: ''
+    };
   }
 }
