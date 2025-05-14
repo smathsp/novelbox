@@ -419,7 +419,11 @@ const deleteCustomProvider = async () => {
     // 从自定义服务商列表中删除
     const index = aiConfig.customProviders?.findIndex(p => p.name === aiConfig.provider)
     if (index !== -1) {
+      const providerName = aiConfig.provider
       aiConfig.customProviders?.splice(index, 1)
+      
+      // 删除服务商的配置文件
+      await AIConfigService.deleteConfig(providerName)
       
       // 删除后切换到默认服务商
       aiConfig.provider = 'openai'

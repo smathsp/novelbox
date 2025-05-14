@@ -35,6 +35,23 @@ export class AIConfigService {
     }
   }
 
+  static async deleteConfig(provider: string): Promise<void> {
+    try {
+      const configPath = this.getConfigPath();
+      let currentConfig = await this.loadConfig();
+      if (currentConfig[provider]) {
+        delete currentConfig[provider];
+        const configStr = JSON.stringify(currentConfig, null, 2);
+        await FileStorageService.writeFile(configPath, configStr);
+      }
+    } catch (error) {
+      if (error instanceof WorkspaceError) {
+        throw error;
+      }
+      throw new Error(`删除AI配置失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   static async loadConfig(): Promise<AIConfig> {
     try {
       const configPath = this.getConfigPath();
