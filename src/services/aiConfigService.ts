@@ -67,10 +67,16 @@ export class AIConfigService {
 
   static async loadProviderConfig(provider: string): Promise<ProviderConfig> {
     const config = await this.loadConfig();
-    return config[provider] || {
-      model: '',
-      apiKey: '',
-      proxyUrl: ''
+    const providerConfig = config[provider] || { model: '', apiKey: '', proxyUrl: '' };
+    return {
+      ...providerConfig,
+      provider: providerConfig.provider || provider
     };
+  }
+
+  static async getCurrentProviderConfig(): Promise<ProviderConfig> {
+    const globalConfig = await this.loadProviderConfig('global');
+    const provider = globalConfig.provider || 'openai';
+    return await this.loadProviderConfig(provider);
   }
 }

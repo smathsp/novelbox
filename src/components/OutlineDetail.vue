@@ -63,7 +63,7 @@ const generateAIContent = async () => {
   isGenerating.value = true
   try {
     // 从AIConfigService获取AI服务配置
-    const aiConfig = await AIConfigService.loadConfig()
+    const aiConfig = await AIConfigService.getCurrentProviderConfig()
     aiService = new AIService({
       provider: aiConfig.provider || 'openai',
       model: aiConfig.model || 'gpt-3.5-turbo',

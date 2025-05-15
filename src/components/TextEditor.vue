@@ -131,7 +131,7 @@ const expandSelectedText = async () => {
     return;
   }
 
-  const aiConfig = await AIConfigService.loadConfig();
+  const aiConfig = await AIConfigService.getCurrentProviderConfig();
   const aiService = new AIService({
     provider: aiConfig.provider || 'openai',
     model: aiConfig.model || 'gpt-3.5-turbo',
@@ -213,7 +213,7 @@ const rewriteSelectedText = async () => {
     }
     const currentBook = props.currentBook;
 
-    const aiConfig = await AIConfigService.loadConfig();
+    const aiConfig = await AIConfigService.getCurrentProviderConfig();
     const aiService = new AIService({
       provider: aiConfig.provider || 'openai',
       model: aiConfig.model || 'gpt-3.5-turbo',
@@ -277,7 +277,7 @@ const condenseSelectedText = async () => {
   }
   const currentBook = props.currentBook;
 
-  const aiConfig = await AIConfigService.loadConfig();
+  const aiConfig = await AIConfigService.getCurrentProviderConfig();
   const aiService = new AIService({
     provider: aiConfig.provider || 'openai',
     model: aiConfig.model || 'gpt-3.5-turbo',
@@ -489,7 +489,7 @@ const editorOptions = {
 
           isAIGenerating.value = true;
 
-          const aiConfig = await AIConfigService.loadConfig();
+          const aiConfig = await AIConfigService.getCurrentProviderConfig();
           const aiService = new AIService({
             provider: aiConfig.provider || 'openai',
             model: aiConfig.model || 'gpt-3.5-turbo',
@@ -710,7 +710,7 @@ const handleAIContinue = async () => {
   const editor = quillEditor.value.getQuill();
   const currentContent = editor.getText();
 
-  const aiConfig = await AIConfigService.loadConfig();
+  const aiConfig = await AIConfigService.getCurrentProviderConfig();
   const aiService = new AIService({
     provider: aiConfig.provider || 'openai',
     model: aiConfig.model || 'gpt-3.5-turbo',
