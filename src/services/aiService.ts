@@ -2,14 +2,9 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AxiosError } from 'axios';
+import axios from 'axios';
+import { ProviderConfig } from './aiConfigService';
 
-
-interface AIConfig {
-  provider: string;
-  model: string;
-  apiKey: string;
-  proxyUrl: string;
-}
 
 interface AIResponse {
   text: string;
@@ -25,13 +20,13 @@ interface StreamAIResponse {
 }
 
 class AIService {
-  private config: AIConfig;
+  private config: ProviderConfig;
   private openaiClient?: OpenAI;
   private anthropicClient?: Anthropic;
   private geminiClient?: GoogleGenerativeAI;
   private deepseekClient?: OpenAI;
 
-  constructor(config: AIConfig) {
+  constructor(config: ProviderConfig) {
     this.config = config;
 
     // 设置代理
@@ -64,6 +59,9 @@ class AIService {
           baseURL: 'https://api.deepseek.com',
           dangerouslyAllowBrowser: true,
         });
+        break;
+      default:
+        // 自定义服务商不需要初始化SDK客户端
         break;
     }
   }
@@ -236,8 +234,102 @@ class AIService {
     }
   }
 
-  async generateText(prompt: string, stream?: StreamCallback): Promise<AIResponse | StreamAIResponse> {
+  private async generateWithCustomProvider(prompt: string, stream?: StreamCallback, signal?: AbortSignal): Promise<string> {
+    const customProvider = this.config.customProviders?.find(p => p.name === this.config.provider);
+    if (!customProvider) {
+      throw new Error('自定义服务商配置未找到');
+    }
 
+    // 处理域名前缀
+    const domain = customProvider.apiDomain.startsWith('http://') || customProvider.apiDomain.startsWith('https://')
+      ? customProvider.apiDomain
+      : `https://${customProvider.apiDomain}`;
+    
+    // 处理API路径
+    const path = customProvider.apiPath.startsWith('/') 
+      ? customProvider.apiPath 
+      : `/${customProvider.apiPath}`;
+    
+    const baseURL = `${domain}${path}`;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.config.apiKey}`
+    };
+
+    if (stream) {
+      try {
+        const response = await fetch(baseURL, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: this.config.model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            stream: true
+          }),
+          signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Response body is null');
+        }
+
+        let fullText = '';
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done || signal?.aborted) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices[0]?.delta?.content || '';
+                fullText += content;
+                stream(content);
+              } catch (e) {
+                console.error('解析响应数据失败:', e);
+              }
+            }
+          }
+        }
+
+        return fullText;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          stream('', '已中止生成');
+          return '';
+        }
+        throw error;
+      }
+    } else {
+      const response = await axios.post(baseURL, {
+        model: this.config.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7
+      }, {
+        headers,
+        signal
+      });
+
+      return response.data.choices[0]?.message?.content || '';
+    }
+  }
+
+  async generateText(prompt: string, stream?: StreamCallback): Promise<AIResponse | StreamAIResponse> {
     const abortController = new AbortController();
     let aborted = false;
 
@@ -271,7 +363,11 @@ class AIService {
                 }, abortController.signal);
                 break;
               default:
-                throw new Error('不支持的AI服务商');
+                // 使用自定义服务商
+                await this.generateWithCustomProvider(prompt, (text, error) => {
+                  if (aborted) return;
+                  stream(text, error);
+                }, abortController.signal);
             }
             stream('', undefined, true);
           } catch (error) {
@@ -304,7 +400,7 @@ class AIService {
           text = await this.generateWithDeepseek(prompt);
           break;
         default:
-          throw new Error('不支持的AI服务商');
+          text = await this.generateWithCustomProvider(prompt);
       }
 
       console.log('生成的文本:', text);

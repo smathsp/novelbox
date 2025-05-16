@@ -264,12 +264,7 @@ import { AIConfigService } from '../services/aiConfigService'
 
 const generateDescription = async () => {
   const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService({
-    provider: aiConfig.provider || 'openai',
-    model: aiConfig.model || 'gpt-3.5-turbo',
-    apiKey: aiConfig.apiKey || '',
-    proxyUrl: aiConfig.proxyUrl || ''
-  });
+  const aiService = new AIService(aiConfig);
 
   isGenerating.value = true
   try {

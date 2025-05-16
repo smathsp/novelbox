@@ -2,9 +2,14 @@ import { FileStorageService } from './fileStorageService';
 import { WorkspaceService } from './workspaceservice';
 import { WorkspaceError } from '../errors/workspaceError';
 
-type ProviderConfig = {
+export type ProviderConfig = {
   provider?: string;
-  customProviders?: any[];
+  customProviders?: Array<{
+    name: string;
+    apiDomain: string;
+    apiPath: string;
+    model: string;
+  }>;
   model: string;
   apiKey: string;
   proxyUrl: string;
@@ -70,13 +75,18 @@ export class AIConfigService {
     const providerConfig = config[provider] || { model: '', apiKey: '', proxyUrl: '' };
     return {
       ...providerConfig,
-      provider: providerConfig.provider || provider
+      provider: providerConfig.provider || provider,
+      customProviders: config.global?.customProviders
     };
   }
 
   static async getCurrentProviderConfig(): Promise<ProviderConfig> {
     const globalConfig = await this.loadProviderConfig('global');
     const provider = globalConfig.provider || 'openai';
-    return await this.loadProviderConfig(provider);
+    const providerConfig = await this.loadProviderConfig(provider);
+    return {
+      ...providerConfig,
+      customProviders: globalConfig.customProviders
+    };
   }
 }

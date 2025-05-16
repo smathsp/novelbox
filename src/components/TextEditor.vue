@@ -132,12 +132,7 @@ const expandSelectedText = async () => {
   }
 
   const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService({
-    provider: aiConfig.provider || 'openai',
-    model: aiConfig.model || 'gpt-3.5-turbo',
-    apiKey: aiConfig.apiKey || '',
-    proxyUrl: aiConfig.proxyUrl || ''
-  });
+  const aiService = new AIService(aiConfig);
 
   const prompt = await replaceExpandPromptVariables(
     props.currentBook,
@@ -214,12 +209,7 @@ const rewriteSelectedText = async () => {
     const currentBook = props.currentBook;
 
     const aiConfig = await AIConfigService.getCurrentProviderConfig();
-    const aiService = new AIService({
-      provider: aiConfig.provider || 'openai',
-      model: aiConfig.model || 'gpt-3.5-turbo',
-      apiKey: aiConfig.apiKey || '',
-      proxyUrl: aiConfig.proxyUrl || ''
-    });
+    const aiService = new AIService(aiConfig);
 
     const selectedText = editor.getText(tempIndex, tempLength);
     const prompt = await replaceRewritePromptVariables(
@@ -278,12 +268,7 @@ const condenseSelectedText = async () => {
   const currentBook = props.currentBook;
 
   const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService({
-    provider: aiConfig.provider || 'openai',
-    model: aiConfig.model || 'gpt-3.5-turbo',
-    apiKey: aiConfig.apiKey || '',
-    proxyUrl: aiConfig.proxyUrl || ''
-  });
+  const aiService = new AIService(aiConfig);
 
   try {
     const prompt = await replaceAbbreviatePromptVariables(
@@ -490,12 +475,7 @@ const editorOptions = {
           isAIGenerating.value = true;
 
           const aiConfig = await AIConfigService.getCurrentProviderConfig();
-          const aiService = new AIService({
-            provider: aiConfig.provider || 'openai',
-            model: aiConfig.model || 'gpt-3.5-turbo',
-            apiKey: aiConfig.apiKey || '',
-            proxyUrl: aiConfig.proxyUrl || ''
-          });
+          const aiService = new AIService(aiConfig);
 
 
           try {
@@ -711,12 +691,7 @@ const handleAIContinue = async () => {
   const currentContent = editor.getText();
 
   const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService({
-    provider: aiConfig.provider || 'openai',
-    model: aiConfig.model || 'gpt-3.5-turbo',
-    apiKey: aiConfig.apiKey || '',
-    proxyUrl: aiConfig.proxyUrl || ''
-  });
+  const aiService = new AIService(aiConfig);
 
   try {
     const prompt = await replaceContinuePromptVariables(

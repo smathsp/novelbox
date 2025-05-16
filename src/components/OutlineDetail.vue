@@ -64,12 +64,7 @@ const generateAIContent = async () => {
   try {
     // 从AIConfigService获取AI服务配置
     const aiConfig = await AIConfigService.getCurrentProviderConfig()
-    aiService = new AIService({
-      provider: aiConfig.provider || 'openai',
-      model: aiConfig.model || 'gpt-3.5-turbo',
-      apiKey: aiConfig.apiKey || '',
-      proxyUrl: aiConfig.proxyUrl || ''
-    })
+    aiService = new AIService(aiConfig)
 
     // 使用props传入的currentChapter对象
     if (!props.currentChapter) {
