@@ -40,14 +40,14 @@ class AIService {
       case 'openai':
         this.openaiClient = new OpenAI({
           apiKey: config.apiKey,
+          baseURL: 'https://api.openai.com/v1',
           dangerouslyAllowBrowser: true,
-          ...(config.proxyUrl ? { baseURL: config.proxyUrl } : {})
         });
         break;
       case 'anthropic':
         this.anthropicClient = new Anthropic({
           apiKey: config.apiKey,
-          ...(config.proxyUrl ? { baseURL: config.proxyUrl } : {})
+          baseURL: 'https://api.anthropic.com'
         });
         break;
       case 'gemini':

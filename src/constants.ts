@@ -15,8 +15,10 @@ export const AI_PROVIDERS: AIProvider[] = [
     id: 'openai',
     name: 'OpenAI',
     models: [
-      { id: 'gpt-4', name: 'GPT-4' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+      { id: 'gpt-4.1', name: 'GPT-4.1' },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+      { id: 'o3', name: 'O3' },
+      { id: 'o4-mini', name: 'O4-Mini' }
     ]
   },
   {
