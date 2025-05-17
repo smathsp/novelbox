@@ -47,7 +47,8 @@ class AIService {
       case 'anthropic':
         this.anthropicClient = new Anthropic({
           apiKey: config.apiKey,
-          baseURL: 'https://api.anthropic.com'
+          baseURL: 'https://api.anthropic.com',
+          dangerouslyAllowBrowser: true,
         });
         break;
       case 'gemini':
@@ -117,7 +118,7 @@ class AIService {
       const response = this.anthropicClient.messages.stream({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 25000
+        max_tokens: 8192
       }, { signal: signal });
 
       let fullText = '';
@@ -149,7 +150,7 @@ class AIService {
       const response = await this.anthropicClient.messages.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 25000
+        max_tokens: 8192,
       });
       return response.content[0]?.type === 'text' ? response.content[0].text : '';
     }

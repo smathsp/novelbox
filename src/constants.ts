@@ -25,8 +25,9 @@ export const AI_PROVIDERS: AIProvider[] = [
     id: 'anthropic',
     name: 'Anthropic',
     models: [
-      { id: 'claude-2', name: 'Claude 2' },
-      { id: 'claude-instant', name: 'Claude Instant' }
+      { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku' },
+      { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet' },
+      { id: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet' }
     ]
   },
   {
