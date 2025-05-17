@@ -164,6 +164,15 @@ function createMenu() {
             }
           }
         },
+        {
+          label: 'AI配置',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow();
+            if (win) {
+              win.webContents.send('open-ai-settings');
+            }
+          }
+        },
         { type: 'separator' },
         isMac ? { role: 'close', label: '关闭' } : { role: 'quit', label: '退出' }
       ]

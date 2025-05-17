@@ -11,7 +11,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 应用操作
   minimizeWindow: () => ipcRenderer.send('minimize-window'),
   maximizeWindow: () => ipcRenderer.send('maximize-window'),
-  closeWindow: () => ipcRenderer.send('close-window')
+  closeWindow: () => ipcRenderer.send('close-window'),
+
+  // AI配置
+  onOpenAISettings: (callback: () => void) => ipcRenderer.on('open-ai-settings', () => callback())
 });
 
 // 监听来自主进程的菜单事件

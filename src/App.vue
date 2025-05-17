@@ -1,11 +1,21 @@
 <template>
   <div class="app-container">
     <router-view></router-view>
+    <AIConfigModal v-model:showAIConfigModal="showAIConfigModal" />
   </div>
 </template>
 
 <script setup lang="ts">
-// App root component
+import { ref, onMounted } from 'vue'
+import AIConfigModal from './components/AIConfigModal.vue'
+
+const showAIConfigModal = ref(false)
+
+onMounted(() => {
+  window.electronAPI.onOpenAISettings(() => {
+    showAIConfigModal.value = true
+  })
+})
 </script>
 
 <style scoped>

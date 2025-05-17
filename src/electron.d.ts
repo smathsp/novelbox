@@ -11,6 +11,9 @@ interface ElectronAPI {
   // 代理设置
   setProxy: (config: { http_proxy: string }) => void;
   removeProxy: () => void;
+
+  // AI配置
+  onOpenAISettings: (callback: () => void) => void;
 }
 
 declare global {
