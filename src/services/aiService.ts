@@ -74,8 +74,9 @@ class AIService {
       const response = await this.openaiClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 25000,
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 25000,
+        top_p: this.config.topP ?? 0.95,
         stream: true
       }, { signal: signal });
 
@@ -104,8 +105,9 @@ class AIService {
       const response = await this.openaiClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 25000
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 25000,
+        top_p: this.config.topP ?? 0.95
       });
       return response.choices[0]?.message?.content || '';
     }
@@ -118,7 +120,9 @@ class AIService {
       const response = this.anthropicClient.messages.stream({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 8192
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 8192,
+        top_p: this.config.topP ?? 0.95
       }, { signal: signal });
 
       let fullText = '';
@@ -150,7 +154,9 @@ class AIService {
       const response = await this.anthropicClient.messages.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 8192,
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 8192,
+        top_p: this.config.topP ?? 0.95
       });
       return response.content[0]?.type === 'text' ? response.content[0].text : '';
     }
@@ -159,7 +165,14 @@ class AIService {
   private async generateWithGemini(prompt: string, stream?: StreamCallback, signal?: AbortSignal): Promise<string> {
     if (!this.geminiClient) throw new Error('Gemini client not initialized');
 
-    const model = this.geminiClient.getGenerativeModel({ model: this.config.model });
+    const model = this.geminiClient.getGenerativeModel({ 
+      model: this.config.model,
+      generationConfig: {
+        temperature: this.config.temperature ?? 0.7,
+        maxOutputTokens: this.config.maxTokens ?? 8192,
+        topP: this.config.topP ?? 0.95
+      }
+    });
 
     if (stream) {
       const response = await model.generateContentStream(prompt, { signal });
@@ -200,7 +213,9 @@ class AIService {
       const response = await this.deepseekClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 25000,
+        top_p: this.config.topP ?? 0.95,
         stream: true
       }, { signal: signal });
 
@@ -229,7 +244,9 @@ class AIService {
       const response = await this.deepseekClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 25000,
+        top_p: this.config.topP ?? 0.95
       });
       return response.choices[0]?.message?.content || '';
     }
@@ -266,7 +283,9 @@ class AIService {
           body: JSON.stringify({
             model: this.config.model,
             messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7,
+            temperature: this.config.temperature ?? 0.7,
+            max_tokens: this.config.maxTokens ?? 25000,
+            top_p: this.config.topP ?? 0.95,
             stream: true
           }),
           signal
@@ -320,7 +339,9 @@ class AIService {
       const response = await axios.post(baseURL, {
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7
+        temperature: this.config.temperature ?? 0.7,
+        max_tokens: this.config.maxTokens ?? 25000,
+        top_p: this.config.topP ?? 0.95
       }, {
         headers,
         signal

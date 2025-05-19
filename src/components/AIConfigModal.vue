@@ -35,6 +35,35 @@
         <input type="text" id="proxyUrl" v-model="aiConfig.proxyUrl" placeholder="请输入代理服务器地址（例如：http://127.0.0.1:7890）"
           class="form-input" />
       </div>
+      <div class="form-group">
+        <button @click="showAdvancedSettings = !showAdvancedSettings" class="advanced-settings-btn">
+          {{ showAdvancedSettings ? '收起更多设置' : '更多设置' }}
+          <span class="arrow" :class="{ 'arrow-up': showAdvancedSettings }">▼</span>
+        </button>
+        <div v-if="showAdvancedSettings" class="advanced-settings">
+          <div class="form-group">
+            <label for="temperature">Temperature</label>
+            <div class="slider-container">
+              <input type="range" id="temperature" v-model.number="aiConfig.temperature" min="0" max="2" step="0.01" class="slider" />
+              <span class="slider-value">{{ aiConfig.temperature.toFixed(2) }}</span>
+            </div>
+            <div class="slider-description">严谨与想象，值越大想象力越丰富</div>
+          </div>
+          <div class="form-group">
+            <label for="topP">Top P</label>
+            <div class="slider-container">
+              <input type="range" id="topP" v-model.number="aiConfig.topP" min="0" max="1" step="0.01" class="slider" />
+              <span class="slider-value">{{ aiConfig.topP.toFixed(2) }}</span>
+            </div>
+            <div class="slider-description">控制输出的多样性，值越小输出越保守</div>
+          </div>
+          <div class="form-group">
+            <label for="maxTokens">最大Token数</label>
+            <input type="number" id="maxTokens" v-model.number="aiConfig.maxTokens" min="1" max="4096" class="form-input" />
+            <div class="slider-description">控制生成文本的最大长度</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button @click="closeAIConfigModal" class="cancel-btn">取消</button>
@@ -186,7 +215,7 @@
 
 <script setup lang="ts">
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt, AI_PROVIDERS, type AIProvider, type AIModel } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
 import { AIConfigService } from '../services/aiConfigService'
@@ -201,6 +230,9 @@ interface AIConfig {
   apiKey: string
   proxyUrl: string
   customProviders?: CustomProvider[]
+  temperature: number
+  maxTokens: number
+  topP: number
 }
 
 interface ProviderConfig {
@@ -209,6 +241,9 @@ interface ProviderConfig {
   apiKey: string
   proxyUrl: string
   customProviders?: CustomProvider[]
+  temperature?: number
+  maxTokens?: number
+  topP?: number
 }
 
 interface CustomProvider {
@@ -230,7 +265,10 @@ const aiConfig = reactive<AIConfig>({
   model: '',
   apiKey: '',
   proxyUrl: '',
-  customProviders: []
+  customProviders: [],
+  temperature: AI_PROVIDERS.find(p => p.id === 'openai')?.defaultTemperature ?? 0.7,
+  maxTokens: AI_PROVIDERS.find(p => p.id === 'openai')?.defaultMaxTokens ?? 2000,
+  topP: AI_PROVIDERS.find(p => p.id === 'openai')?.defaultTopP ?? 0.95
 })
 
 const promptConfig = reactive({
@@ -283,6 +321,16 @@ const expandTextarea = ref<HTMLTextAreaElement>()
 const abbreviateTextarea = ref<HTMLTextAreaElement>()
 const updateSettingsTextarea = ref<HTMLTextAreaElement>()
 
+const showAdvancedSettings = ref(false)
+
+// 监听对话框显示状态
+watch(() => props.showAIConfigModal, async (newValue) => {
+  if (newValue) {
+    // 当对话框显示时，重新加载配置
+    await loadAIConfig()
+  }
+})
+
 onMounted(async () => {
   try {
     await loadAIConfig()
@@ -326,6 +374,19 @@ const loadCurrentProviderConfig = async () => {
     aiConfig.model = providerConfig.model || ''
     aiConfig.apiKey = providerConfig.apiKey || ''
     aiConfig.proxyUrl = providerConfig.proxyUrl || ''
+    
+    // 获取当前服务商的默认配置
+    const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider)
+    if (provider) {
+      aiConfig.temperature = providerConfig.temperature ?? provider.defaultTemperature
+      aiConfig.maxTokens = providerConfig.maxTokens ?? provider.defaultMaxTokens
+      aiConfig.topP = providerConfig.topP ?? provider.defaultTopP
+    } else {
+      // 自定义服务商使用默认值
+      aiConfig.temperature = providerConfig.temperature ?? 0.7
+      aiConfig.maxTokens = providerConfig.maxTokens ?? 2000
+      aiConfig.topP = providerConfig.topP ?? 0.95
+    }
   } catch (error) {
     console.error('加载服务商配置失败:', error)
   }
@@ -342,7 +403,10 @@ const saveAIConfig = async () => {
     const providerConfig: ProviderConfig = {
       model: aiConfig.model,
       apiKey: aiConfig.apiKey,
-      proxyUrl: aiConfig.proxyUrl
+      proxyUrl: aiConfig.proxyUrl,
+      temperature: aiConfig.temperature,
+      maxTokens: aiConfig.maxTokens,
+      topP: aiConfig.topP
     }
     
     // 保存当前服务商的配置
@@ -775,6 +839,38 @@ const getCurrentTextarea = (): HTMLTextAreaElement | undefined => {
 .variable-toolbar button:active {
   background-color: #dee2e6;
   transform: translateY(1px);
+}
+
+.advanced-settings-btn {
+  @apply w-full flex items-center justify-between px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors;
+}
+
+.arrow {
+  @apply transition-transform duration-200;
+}
+
+.arrow-up {
+  transform: rotate(180deg);
+}
+
+.advanced-settings {
+  @apply mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200;
+}
+
+.slider-container {
+  @apply flex items-center gap-4;
+}
+
+.slider {
+  @apply flex-1;
+}
+
+.slider-value {
+  @apply w-12 text-center text-gray-600;
+}
+
+.slider-description {
+  @apply mt-1 text-sm text-gray-500;
 }
 
 </style>

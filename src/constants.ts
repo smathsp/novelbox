@@ -3,6 +3,9 @@ export interface AIProvider {
   id: string
   name: string
   models: AIModel[]
+  defaultTemperature: number
+  defaultMaxTokens: number
+  defaultTopP: number
 }
 
 export interface AIModel {
@@ -19,7 +22,10 @@ export const AI_PROVIDERS: AIProvider[] = [
       { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
       { id: 'o3', name: 'O3' },
       { id: 'o4-mini', name: 'O4-Mini' }
-    ]
+    ],
+    defaultTemperature: 0.7,
+    defaultMaxTokens: 25000,
+    defaultTopP: 0.95
   },
   {
     id: 'anthropic',
@@ -28,7 +34,10 @@ export const AI_PROVIDERS: AIProvider[] = [
       { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku' },
       { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet' },
       { id: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet' }
-    ]
+    ],
+    defaultTemperature: 0.7,
+    defaultMaxTokens: 8192,
+    defaultTopP: 0.95
   },
   {
     id: 'gemini',
@@ -37,7 +46,10 @@ export const AI_PROVIDERS: AIProvider[] = [
       { id: 'gemini-2.0-flash', name: 'Gemini Flash' },
       { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking' },
       { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' }
-    ]
+    ],
+    defaultTemperature: 0.7,
+    defaultMaxTokens: 8192,
+    defaultTopP: 0.95
   },
   {
     id: 'deepseek',
@@ -45,7 +57,10 @@ export const AI_PROVIDERS: AIProvider[] = [
     models: [
       { id: 'deepseek-chat', name: 'Deepseek V3' },
       { id: 'deepseek-reasoner', name: 'Deepseek R1' }
-    ]
+    ],
+    defaultTemperature: 0.7,
+    defaultMaxTokens: 25000,
+    defaultTopP: 0.95
   }
 ]
 

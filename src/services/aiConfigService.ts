@@ -13,6 +13,9 @@ export type ProviderConfig = {
   model: string;
   apiKey: string;
   proxyUrl: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
 };
 
 type AIConfig = {
