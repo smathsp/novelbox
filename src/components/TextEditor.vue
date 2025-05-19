@@ -75,7 +75,7 @@ const calculateWordCount = () => {
   // 计算当前章节字数
   const editor = quillEditor.value?.getQuill()
   if (editor) {
-    const text = editor.getText()
+    const text = editor.getText().trim()
     chapterWordCount.value = text.length
   }
 }
