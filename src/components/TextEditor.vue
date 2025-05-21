@@ -568,15 +568,15 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
   try {
     // 保存旧章节内容
     if (oldChapter?.type === 'chapter' && oldChapter?.id && isModified) {
-      const saveChapterId = oldChapter.id;
-      await saveChapterContent(saveChapterId, content.value);
+      await saveChapterContent(oldChapter.id, content.value);
     }
+    
     isNewChapter = true;
     // 强制触发内容更新
     content.value = '';
     await nextTick();
 
-    // 强制重置编辑器内容
+    // 加载新章节内容
     if (newChapter?.type === 'chapter' && newChapter?.id) {
       const latestContent = await getLatestChapterContent(newChapter.id);
       content.value = latestContent || '';
@@ -619,11 +619,6 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
           console.error('编辑器内容设置失败', error);
         }
       }
-    }
-    if (newChapter?.type === 'chapter' && newChapter !== oldChapter) {
-      content.value = newChapter.content || ''
-    } else if (!newChapter) {
-      content.value = ''
     }
     isNewChapter = false;
   } catch (error) {
