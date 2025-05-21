@@ -607,7 +607,7 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
               const toolbar = document.querySelector('.floating-toolbar');
               const rewriteInput = document.querySelector('.rewrite-input');
 
-              if ((!toolbar || !toolbar.contains(event.target as Node)) && (!rewriteInput || !rewriteInput.contains(event.target as Node))) {
+              if ((!toolbar || !toolbar.contains(document.activeElement)) && (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
                 showFloatingToolbar.value = false;
                 showRewriteInput.value = false;
                 rewriteContent.value = ''
