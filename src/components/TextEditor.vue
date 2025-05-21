@@ -584,6 +584,8 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
       const editor = quillEditor.value?.getQuill();
       if (editor) {
         try {
+          // 清空历史记录
+          editor.history.clear();
           editor.setContents(editor.clipboard.convert(content.value));
           // 重新绑定selection-change事件
           editor.off('selection-change');
