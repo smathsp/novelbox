@@ -3,72 +3,55 @@ type FileItem = {
   type: 'file' | 'directory';
 };
 
-export class FileStorageService {
-  private static serverUrl = 'http://localhost:30073';
+declare global {
+  interface Window {
+    electron: {
+      ipcRenderer: {
+        invoke(channel: string, ...args: any[]): Promise<any>;
+      };
+    };
+  }
+}
 
+export class FileStorageService {
   static async readFile(filePath: string): Promise<string> {
-    const response = await fetch(
-      `${this.serverUrl}/read?path=${encodeURIComponent(filePath)}`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Failed to read file: ${response.statusText}`);
+    const result = await window.electron.ipcRenderer.invoke('read-file', filePath);
+    if (!result.success) {
+      throw new Error(`Failed to read file: ${result.error}`);
     }
-    
-    return await response.text();
+    return result.content;
   }
 
   static async writeFile(filePath: string, content: string): Promise<void> {
-    const response = await fetch(
-      `${this.serverUrl}/write?path=${encodeURIComponent(filePath)}`, {
-      method: 'POST',
-      body: content,
-      headers: {
-        'Content-Type': 'text/plain'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to write file: ${response.statusText}`);
+    const result = await window.electron.ipcRenderer.invoke('write-file', { filePath, content });
+    if (!result.success) {
+      throw new Error(`Failed to write file: ${result.error}`);
     }
   }
 
   static async listFiles(dirPath: string = '.'): Promise<FileItem[]> {
-    const response = await fetch(
-      `${this.serverUrl}/list?path=${encodeURIComponent(dirPath)}`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Failed to list files: ${response.statusText}`);
+    const result = await window.electron.ipcRenderer.invoke('list-files', dirPath);
+    if (!result.success) {
+      throw new Error(`Failed to list files: ${result.error}`);
     }
-    
-    return await response.json();
+    return result.items;
   }
 
   static async deleteFile(filePath: string): Promise<void> {
-    const response = await fetch(
-      `${this.serverUrl}/delete?path=${encodeURIComponent(filePath)}`, {
-      method: 'DELETE'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to delete file: ${response.statusText}`);
+    const result = await window.electron.ipcRenderer.invoke('delete-file', filePath);
+    if (!result.success) {
+      throw new Error(`Failed to delete file: ${result.error}`);
     }
   }
 
   static async writeBlobFile(filePath: string, blob: Blob): Promise<void> {
-    const response = await fetch(
-      `${this.serverUrl}/write?path=${encodeURIComponent(filePath)}`, {
-      method: 'POST',
-      body: blob,
-      headers: {
-        'Content-Type': 'application/octet-stream'
-      }
+    const buffer = await blob.arrayBuffer();
+    const result = await window.electron.ipcRenderer.invoke('write-blob-file', {
+      filePath,
+      buffer: Buffer.from(buffer)
     });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`${response.statusText} - ${errorText}`);
+    if (!result.success) {
+      throw new Error(`Failed to write blob file: ${result.error}`);
     }
   }
 }
