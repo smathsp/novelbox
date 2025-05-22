@@ -355,6 +355,9 @@ const loadAIConfig = async () => {
       aiConfig.provider = globalConfig.provider
     }
     
+    // 更新模型选项
+    await updateModelOptions()
+    
     // 加载当前服务商的配置
     await loadCurrentProviderConfig()
     
