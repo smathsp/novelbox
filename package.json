@@ -1,7 +1,7 @@
 {
   "name": "novel-box",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "NovelBox小说写作应用",
   "author": "novelbox.feedback@gmail.com",
   "main": "./dist/electron/main.js",
@@ -61,14 +61,7 @@
     "files": [
       "dist/**/*",
       "dist/electron/**/*",
-      "package.json",
-      "local-file-server.js"
-    ],
-    "extraResources": [
-      {
-        "from": "local-file-server.js",
-        "to": "./"
-      }
+      "package.json"
     ],
     "win": {
       "target": [
