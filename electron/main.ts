@@ -1,59 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell, globalShortcut } from 'electron'
 import { enable } from '@electron/remote/main'
 import * as path from 'path'
-// 添加子进程模块导入
-import { spawn } from 'child_process';
-
-// 在应用启动时创建文件服务器
-let fileServerProcess: ReturnType<typeof spawn> | null = null;
-
-function startFileServer() {
-  // 先确保之前的进程已终止
-  if (fileServerProcess) {
-    fileServerProcess.kill();
-    fileServerProcess = null;
-  }
-
-  // 根据运行环境确定文件服务器脚本路径
-  const serverPath = process.env.VITE_DEV_SERVER_URL
-    ? path.join(__dirname, '../local-file-server.js')
-    : path.join(process.resourcesPath, 'local-file-server.js');
-
-  try {
-    fileServerProcess = spawn('node', [serverPath]);
-
-    fileServerProcess?.stdout?.on('data', (data) => {
-      console.log(`文件服务器: ${data}`);
-    });
-
-    fileServerProcess?.stderr?.on('data', (data) => {
-      console.error(`文件服务器错误: ${data}`);
-    });
-
-    fileServerProcess?.on('error', (error) => {
-      console.error(`文件服务器启动失败: ${error.message}`);
-      fileServerProcess = null;
-    });
-
-    fileServerProcess?.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`文件服务器异常退出，退出码: ${code}`);
-      }
-      fileServerProcess = null;
-    });
-  } catch (error) {
-    console.error(`启动文件服务器失败: ${error}`);
-    fileServerProcess = null;
-  }
-}
-
-// 在应用退出时关闭服务器
-app.on('before-quit', () => {
-  if (fileServerProcess) {
-    fileServerProcess.kill();
-    console.log('已关闭本地文件服务器');
-  }
-});
+import * as fs from 'fs/promises';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -199,7 +147,6 @@ function createMenu() {
             await shell.openExternal('https://github.com/Rain-31/novelbox');
           }
         },
-
       ]
     }
   ];
@@ -208,14 +155,9 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-
-
-
-
 app.whenReady().then(() => {
   createWindow();
   createMenu();
-  startFileServer(); // 启动文件服务器
 
   // 注册F12快捷键
   globalShortcut.register('F12', () => {
@@ -234,10 +176,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    // 确保所有窗口关闭时清理文件服务器进程
-    if (fileServerProcess) {
-      fileServerProcess.kill();
-    }
     app.quit();
   }
 })
@@ -315,5 +253,68 @@ ipcMain.on('close-window', (event) => {
     // 确保窗口关闭前清理相关资源
     win.webContents.session.clearCache();
     win.close();
+  }
+});
+
+// 文件操作相关的 IPC 处理程序
+
+// 读取文件
+ipcMain.handle('read-file', async (_event, filePath: string) => {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return { success: true, content };
+  } catch (error: any) {
+    console.error('读取文件失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 写入文件
+ipcMain.handle('write-file', async (_event, { filePath, content }: { filePath: string; content: string }) => {
+  try {
+    await fs.writeFile(filePath, content, 'utf-8');
+    return { success: true };
+  } catch (error: any) {
+    console.error('写入文件失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 写入二进制文件
+ipcMain.handle('write-blob-file', async (_event, { filePath, buffer }: { filePath: string; buffer: Buffer }) => {
+  try {
+    await fs.writeFile(filePath, buffer);
+    return { success: true };
+  } catch (error: any) {
+    console.error('写入二进制文件失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 列出目录内容
+ipcMain.handle('list-files', async (_event, dirPath: string) => {
+  try {
+    const items = await fs.readdir(dirPath, { withFileTypes: true });
+    return {
+      success: true,
+      items: items.map(item => ({
+        name: item.name,
+        type: item.isDirectory() ? 'directory' : 'file'
+      }))
+    };
+  } catch (error: any) {
+    console.error('列出目录内容失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 删除文件
+ipcMain.handle('delete-file', async (_event, filePath: string) => {
+  try {
+    await fs.unlink(filePath);
+    return { success: true };
+  } catch (error: any) {
+    console.error('删除文件失败:', error);
+    return { success: false, error: error.message };
   }
 });

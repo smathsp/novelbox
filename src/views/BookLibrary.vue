@@ -436,7 +436,13 @@ const applyAIContent = () => {
 }
 
 .ai-gen-btn {
-  @apply absolute right-2 top-2 flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-sm;
+  @apply absolute right-2 top-2 flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white rounded-md transition-all text-sm;
+  opacity: 0.4;
+}
+
+.ai-gen-btn:hover {
+  @apply bg-green-600;
+  opacity: 1;
 }
 
 .h-40 {
