@@ -70,7 +70,7 @@ const chapterWordCount = ref(0)
 
 // 计算字数
 const calculateWordCount = () => {
-  if (!props.currentChapter?.id) return
+  if (!props.currentChapter?.id) return;
 
   // 计算当前章节字数
   const editor = quillEditor.value?.getQuill()
@@ -378,11 +378,12 @@ const showSaveToast = ref(false)
 const editorOptions = {
   modules: {
     history: {
-      delay: 1000,
-      maxStack: 500,
+      delay: 2000,
+      maxStack: 100,
       userOnly: true
     },
     clipboard: {
+      matchVisual: false,
       matchers: [
         [Node.TEXT_NODE, function (node, delta) {
           return new Delta().insert(node.data);
@@ -563,8 +564,13 @@ const emit = defineEmits<{
   'save-content': [chapterId: string, content: string]
 }>()
 
-// 监听章节变化
+// 添加性能优化相关的状态
+const isUpdating = ref(false);
+const updateTimeout = ref<number | null>(null);
+
+// 优化章节切换逻辑
 watch(() => props.currentChapter, async (newChapter, oldChapter) => {
+  
   try {
     // 保存旧章节内容
     if (oldChapter?.type === 'chapter' && oldChapter?.id && isModified) {
@@ -572,22 +578,40 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
     }
     
     isNewChapter = true;
-    // 强制触发内容更新
+    isUpdating.value = true;
+    
+    // 清空编辑器内容
     content.value = '';
     await nextTick();
 
     // 加载新章节内容
     if (newChapter?.type === 'chapter' && newChapter?.id) {
       const latestContent = await getLatestChapterContent(newChapter.id);
-      content.value = latestContent || '';
-      await nextTick();
+      
       const editor = quillEditor.value?.getQuill();
       if (editor) {
         try {
-          // 清空历史记录
+          // 暂时禁用编辑器和历史记录
+          editor.disable();
           editor.history.clear();
-          editor.setContents(editor.clipboard.convert(content.value));
-          // 重新绑定selection-change事件
+          
+          // 使用 requestAnimationFrame 优化 DOM 更新
+          await new Promise<void>(resolve => {
+            requestAnimationFrame(() => {
+              content.value = latestContent || '';
+              
+              // 使用 requestAnimationFrame 确保 DOM 更新完成
+              requestAnimationFrame(() => {
+                editor.setContents(editor.clipboard.convert(content.value));
+                editor.enable();
+                // 在内容更新完成后立即计算字数
+                calculateWordCount();
+                resolve();
+              });
+            });
+          });
+          
+          // 重新绑定选择事件
           editor.off('selection-change');
           editor.on('selection-change', (range, oldRange, source) => {
             if (range && range.length > 0 && source === 'user') {
@@ -609,24 +633,44 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
               const toolbar = document.querySelector('.floating-toolbar');
               const rewriteInput = document.querySelector('.rewrite-input');
 
-              if ((!toolbar || !toolbar.contains(document.activeElement)) && (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
+              if ((!toolbar || !toolbar.contains(document.activeElement)) && 
+                  (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
                 showFloatingToolbar.value = false;
                 showRewriteInput.value = false;
-                rewriteContent.value = ''
+                rewriteContent.value = '';
                 selectedTextRange.value = null;
               }
             }
           });
         } catch (error) {
           console.error('编辑器内容设置失败', error);
+          editor.enable();
         }
       }
     }
+    
     isNewChapter = false;
+    isUpdating.value = false;
+    
   } catch (error) {
     console.error('章节切换处理失败:', error);
+    isUpdating.value = false;
   }
-}, { immediate: true, deep: true })
+}, { immediate: true, deep: true });
+
+// 优化内容更新逻辑
+const onTextChange = () => {
+  if (isUpdating.value) return;
+  
+  // 使用防抖处理内容更新
+  if (updateTimeout.value) {
+    clearTimeout(updateTimeout.value);
+  }
+  
+  updateTimeout.value = window.setTimeout(() => {
+    calculateWordCount();
+  }, 200);
+};
 
 // 保存章节内容
 // 获取最新章节内容
@@ -668,11 +712,6 @@ const saveChapterContent = async (chapterId?: string, contentToSave?: string) =>
     console.error('保存章节内容失败:', error);
     ElMessage.error('保存章节内容失败');
   }
-}
-
-const onTextChange = () => {
-  // 移除自动保存逻辑，使用watch content的防抖保存机制
-  calculateWordCount()
 }
 
 const handleAIContinue = async () => {
