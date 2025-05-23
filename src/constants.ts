@@ -67,7 +67,31 @@ export const AI_PROVIDERS: AIProvider[] = [
 // 提示词配置
 export const defaultBookNameAndDescPrompt = '根据以下内容，生成一个引人入胜的小说书名和针对这个书名的简介，确保只生成书名和简介不生成任何其他信息，输出格式是：\n书名:\n简介:\n\n${content}'
 
-export const defaultSettingsPrompt = '根据以下内容，生成一个引人入胜的小说设定，确保只生成设定不生成任何其他信息:\n小说名:${title}\n,简介:${description}\n,设定要求:${content}'
+export const defaultSettingsPrompt = `请根据以下内容，生成一个详细的小说设定。设定必须包含以下部分：
+
+1. 人物设定：
+   - 主要人物：包括性格、外貌、背景、能力等
+   - 重要配角：简要描述其特点和作用
+   - 反派角色：描述其动机和威胁
+
+2. 世界观设定：
+   - 时代背景
+   - 地理环境
+   - 社会制度
+   - 文化特色
+
+3. 特殊设定（根据小说类型选择性添加）：
+   - 修炼体系/能力体系
+   - 金手指设定
+   - 法宝/装备设定
+   - 功法/技能设定
+   - 特殊规则/限制
+
+请确保设定合理、自洽，并符合小说类型特点。生成的内容不要使用markdown格式，不要使用除中文外的其他语言。只生成设定内容，不要生成其他信息。
+
+小说名：\${title}
+简介：\${description}
+设定要求：\${content}`
 
 export const defaultOutlinePrompt = '根据以下内容，生成一个引人入胜的小说剧情大纲，确保只生成大纲不生成任何其他信息:\n小说名:${title}\n,简介:${description}\n,大纲要求:${content}'
 
