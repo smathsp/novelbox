@@ -15,7 +15,7 @@
       </button>
     </div>
     <div class="outline-content">
-      <div v-show="activeTab === 'setting'" class="tab-panel">
+      <div v-show="activeTab === 'setting'" class="tab-panel" data-tab="setting">
         <textarea v-model="settingContent" class="content-input" placeholder="写一些关于设定的想法，越多越好..." @input="saveContent"
           :disabled="isGenerating"></textarea>
         <div class="button-group">
@@ -38,7 +38,7 @@
           </button>
         </div>
       </div>
-      <div v-show="activeTab === 'plot'" class="tab-panel">
+      <div v-show="activeTab === 'plot'" class="tab-panel" data-tab="plot">
         <textarea v-model="plotContent" class="content-input" placeholder="写一些剧情发展的大概思路，如何开始、如何发展、如何结局等等，点击'AI生成'按钮..."
           @input="saveContent" :disabled="isGenerating"></textarea>
         <div class="button-group">
@@ -260,12 +260,24 @@ watch(() => props.show, (newVal) => {
   @apply flex gap-2 mt-2 flex-shrink-0;
 }
 
+.ai-dropdown {
+  @apply relative;
+  width: calc(50% - 4px);
+}
+
 .ai-btn {
-  @apply flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px];
+  @apply w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed;
+  box-sizing: border-box;
+}
+
+.tab-panel[data-tab="plot"] .ai-btn {
+  width: calc(50% - 4px);
 }
 
 .save-btn {
-  @apply flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed;
+  width: calc(50% - 4px);
+  @apply px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed;
+  box-sizing: border-box;
 }
 
 @keyframes slideIn {
@@ -276,10 +288,6 @@ watch(() => props.show, (newVal) => {
   to {
     transform: translateX(0);
   }
-}
-
-.ai-dropdown {
-  @apply relative flex-1;
 }
 
 .ai-dropdown-menu {
