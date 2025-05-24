@@ -39,7 +39,7 @@
         </div>
       </div>
       <div v-show="activeTab === 'plot'" class="tab-panel">
-        <textarea v-model="plotContent" class="content-input" placeholder="将小说的完整设定填写在这里点击'AI功能'按钮..."
+        <textarea v-model="plotContent" class="content-input" placeholder="写一些剧情发展的大概思路，如何开始、如何发展、如何结局等等，点击'AI生成'按钮..."
           @input="saveContent" :disabled="isGenerating"></textarea>
         <div class="button-group">
           <button @click="generateAIContent('plot')" class="ai-btn" :disabled="isGenerating || !plotContent.trim()">

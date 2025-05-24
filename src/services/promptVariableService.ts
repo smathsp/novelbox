@@ -107,6 +107,7 @@ export const replaceOutlinePromptVariables = async (book: Book, content: string)
         .replace('${content}', content)
         .replace('${title}', book.title)
         .replace('${description}', book.description || '')
+        .replace('${settings}', book.setting || '')
 }
 
 /**
