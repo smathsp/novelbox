@@ -234,6 +234,10 @@ const rewriteSelectedText = async () => {
           .insert(text),
         'user'
       );
+      // 在内容更新后重新设置选中状态
+      nextTick(() => {
+        editor.setSelection(tempIndex, text.length, 'user');
+      });
       if (props.currentChapter?.id) {
         saveChapterContent(props.currentChapter.id, content.value);
       }
