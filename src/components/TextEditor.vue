@@ -95,15 +95,6 @@ const initAIGenerateButton = () => {
   }
 }
 
-const handleClickOutside = (event: MouseEvent) => {
-  const editor = quillEditor.value?.getQuill();
-  if (editor && !editor.container.contains(event.target as Node)) {
-    showRewriteInput.value = false;
-    rewriteContent.value = ''
-    showFloatingToolbar.value = false;
-  }
-};
-
 const expandSelectedText = async () => {
   if (!selectedTextRange.value) return;
   const editor = quillEditor.value.getQuill();
@@ -252,10 +243,36 @@ const rewriteSelectedText = async () => {
     if (showRewriteInput.value) {
       const selection = editor.getSelection()
       if (selection) {
-        document.querySelector('.floating-toolbar')?.classList.add('show-rewrite')
+        const toolbar = document.querySelector('.floating-toolbar');
+        if (toolbar) {
+          // 获取工具栏和编辑器的位置信息
+          const toolbarRect = toolbar.getBoundingClientRect();
+          const editorRect = editor.container.getBoundingClientRect();
+          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+          
+          // 计算展开后的工具栏宽度（包含输入框）
+          const expandedToolbarWidth = 430; // 展开后的工具栏宽度
+          const rightBoundary = editorRect.right + scrollLeft;
+          const currentLeft = parseFloat(toolbarStyle.value.left);
+          
+          // 如果展开后会超出右边界，则向左调整位置
+          if (currentLeft + expandedToolbarWidth > rightBoundary) {
+            const newLeft = rightBoundary - expandedToolbarWidth - 10; // 10px的边距
+            // 使用 requestAnimationFrame 确保在下一帧渲染前调整位置
+            requestAnimationFrame(() => {
+              toolbarStyle.value.left = `${newLeft}px`;
+              // 在位置调整后再添加展开类
+              requestAnimationFrame(() => {
+                toolbar.classList.add('show-rewrite');
+              });
+            });
+          } else {
+            toolbar.classList.add('show-rewrite');
+          }
+        }
       }
     } else {
-      document.querySelector('.floating-toolbar')?.classList.remove('show-rewrite')
+      document.querySelector('.floating-toolbar')?.classList.remove('show-rewrite');
     }
   }
 }
@@ -308,36 +325,6 @@ onMounted(() => {
   // 使用nextTick确保DOM更新完成
   nextTick(() => {
     initAIGenerateButton()
-    const editor = quillEditor.value?.getQuill()
-    if (editor) {
-      editor.on('selection-change', (range, oldRange, source) => {
-        if (range && range.length > 0 && source === 'user') {
-          const bounds = editor.getBounds(range.index, range.length);
-          const editorRect = editor.container.getBoundingClientRect();
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-          // 计算工具栏的位置，考虑滚动偏移和编辑器容器的位置
-          const top = editorRect.top + bounds.top + scrollTop - 40; // 向上偏移40px
-          const left = editorRect.left + bounds.left + scrollLeft + (bounds.width / 2) - 50;
-
-          toolbarStyle.value = {
-            top: `${top}px`,
-            left: `${left}px`
-          };
-          selectedTextRange.value = range;
-          showFloatingToolbar.value = true;
-        } else {
-          showFloatingToolbar.value = false;
-          selectedTextRange.value = null;
-        }
-        // Note: We don't hide if the source is 'api' or 'silent'
-        // to prevent the toolbar from flickering during programmatic changes
-      });
-
-      // Hide toolbar if user clicks outside the editor
-      document.addEventListener('click', handleClickOutside);
-    }
   })
 })
 
@@ -617,35 +604,7 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
           
           // 重新绑定选择事件
           editor.off('selection-change');
-          editor.on('selection-change', (range, oldRange, source) => {
-            if (range && range.length > 0 && source === 'user') {
-              const bounds = editor.getBounds(range.index, range.length);
-              const editorRect = editor.container.getBoundingClientRect();
-              const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-              const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-              const top = editorRect.top + bounds.top + scrollTop - 40;
-              const left = editorRect.left + bounds.left + scrollLeft + (bounds.width / 2) - 50;
-
-              toolbarStyle.value = {
-                top: `${top}px`,
-                left: `${left}px`
-              };
-              selectedTextRange.value = range;
-              showFloatingToolbar.value = true;
-            } else {
-              const toolbar = document.querySelector('.floating-toolbar');
-              const rewriteInput = document.querySelector('.rewrite-input');
-
-              if ((!toolbar || !toolbar.contains(document.activeElement)) && 
-                  (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
-                showFloatingToolbar.value = false;
-                showRewriteInput.value = false;
-                rewriteContent.value = '';
-                selectedTextRange.value = null;
-              }
-            }
-          });
+          editor.on('selection-change', handleSelectionChange);
         } catch (error) {
           console.error('编辑器内容设置失败', error);
           editor.enable();
@@ -782,6 +741,44 @@ const handleAIContinue = async () => {
     generationTask.value = null;
   }
 };
+
+const handleSelectionChange = (range: any, oldRange: any, source: string) => {
+  if (range && range.length > 0 && source === 'user') {
+    const editor = quillEditor.value.getQuill();
+    const bounds = editor.getBounds(range.index, range.length);
+    const editorRect = editor.container.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    // 计算工具栏的初始位置
+    const toolbarWidth = 200; // 工具栏的大致宽度
+    const initialLeft = editorRect.left + bounds.left + scrollLeft + (bounds.width / 2) - (toolbarWidth / 2);
+    
+    // 检查工具栏是否会超出编辑器右边界
+    const rightBoundary = editorRect.right + scrollLeft;
+    const adjustedLeft = Math.min(initialLeft, rightBoundary - toolbarWidth - 10); // 10px的边距
+
+    const top = editorRect.top + bounds.top + scrollTop - 40;
+
+    toolbarStyle.value = {
+      top: `${top}px`,
+      left: `${adjustedLeft}px`
+    };
+    selectedTextRange.value = range;
+    showFloatingToolbar.value = true;
+  } else {
+    const toolbar = document.querySelector('.floating-toolbar');
+    const rewriteInput = document.querySelector('.rewrite-input');
+
+    if ((!toolbar || !toolbar.contains(document.activeElement)) && 
+        (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
+      showFloatingToolbar.value = false;
+      showRewriteInput.value = false;
+      rewriteContent.value = '';
+      selectedTextRange.value = null;
+    }
+  }
+};
 </script>
 
 <style scoped>
@@ -795,6 +792,7 @@ const handleAIContinue = async () => {
   padding: 4px;
   z-index: 1000;
   transition: all 0.3s ease;
+  transform-origin: left center;
 }
 
 .floating-toolbar button {
@@ -823,15 +821,21 @@ const handleAIContinue = async () => {
   width: 0;
   opacity: 0;
   transition: all 0.3s ease;
+  transform-origin: left center;
+}
+
+.floating-toolbar.show-rewrite {
+  transform: translateX(0);
 }
 
 .floating-toolbar.show-rewrite .rewrite-btn {
-  transform: translateX(10px);
+  transform: translateX(0);
 }
 
 .floating-toolbar.show-rewrite .rewrite-input {
   width: 200px;
   opacity: 1;
+  margin-left: 8px;
 }
 
 .text-editor-container {
