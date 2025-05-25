@@ -483,7 +483,7 @@ const applyAIContent = () => {
 
 .page-title {
   @apply text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 tracking-wider;
-  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
   transform: scale(1);
   transition: transform 0.2s ease;
