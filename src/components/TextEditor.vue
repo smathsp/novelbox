@@ -366,6 +366,14 @@ const showSearchReplace = ref(false)
 const showDetailOutline = ref(false)
 const showSaveToast = ref(false)
 
+// 监听编辑器实例
+watch(() => quillEditor.value?.getQuill(), (editor) => {
+  if (editor) {
+    console.log("set root")
+    editor.root.setAttribute('spellcheck', 'false')
+  }
+}, { immediate: true })
+
 const editorOptions = {
   modules: {
     history: {
