@@ -139,3 +139,21 @@ export const defaultAbbreviatePrompt = '请根据以下内容缩写小说段落�
 export const defaultRewriteAbbreviatePrompt = '请根据以下内容改写小说段落，只对需要改写的内容进行改写，确保只改写后段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要改写的段落:${content}'
 
 export const defaultUpdateSettingsPrompt = '请总结本章内容中的新增设定和改变的设定，包括人物设定、能力设定、物品设定等等，并更新小说的当前设定，确保只生成更新后的设定不生成任何其他信息。\n小说名:${title}\n简介:${description}\n当前设定:${settings}\n本章内容:${chapter}'
+
+export const defaultProofreadPrompt = `请对以下小说章节内容进行校对，检查以下方面的问题：
+1. 错别字和用词不当
+2. 语法错误
+3. 标点符号使用不当
+4. 敏感词检查（包括但不限于：政治敏感、色情暴力、血腥恐怖、歧视性用语等）
+
+请仔细分析文本，找出所有问题，并直接返回完整的校对后的章节内容。
+
+章节内容：
+\${content}
+
+注意：
+1. 只返回校对后的完整章节内容，不要包含任何其他信息
+2. 不要使用markdown格式
+3. 除非原文包含非中文内容，否则只返回中文内容
+4. 对于敏感词，请给出更委婉或中性的替代表达
+5. 保持原文的段落格式和排版`

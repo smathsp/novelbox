@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@electron/remote": "^2.1.2",
     "@element-plus/icons-vue": "^2.3.1",
     "@google/generative-ai": "^0.24.0",
     "@opentelemetry/api": "^1.9.0",
@@ -23,6 +24,7 @@
     "ajv-formats": "^3.0.1",
     "ast-types": "^0.14.2",
     "axios": "^1.8.3",
+    "diff-match-patch": "^1.0.5",
     "docx": "^9.3.0",
     "element-plus": "^2.5.6",
     "html-to-text": "^9.0.5",
@@ -31,8 +33,7 @@
     "quill-delta": "5.1.0",
     "uuid": "^11.1.0",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.0",
-    "@electron/remote": "^2.1.2"
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.86",

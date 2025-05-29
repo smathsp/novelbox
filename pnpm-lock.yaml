@@ -11,6 +11,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.39.0
         version: 0.39.0(encoding@0.1.13)
+      '@electron/remote':
+        specifier: ^2.1.2
+        version: 2.1.2(electron@35.1.5)
       '@element-plus/icons-vue':
         specifier: ^2.3.1
         version: 2.3.1(vue@3.5.13(typescript@5.7.3))
@@ -44,6 +47,9 @@ importers:
       axios:
         specifier: ^1.8.3
         version: 1.8.4
+      diff-match-patch:
+        specifier: ^1.0.5
+        version: 1.0.5
       docx:
         specifier: ^9.3.0
         version: 9.3.0
@@ -72,9 +78,6 @@ importers:
         specifier: ^4.5.0
         version: 4.5.0(vue@3.5.13(typescript@5.7.3))
     devDependencies:
-      '@electron/remote':
-        specifier: ^2.1.2
-        version: 2.1.2(electron@35.1.5)
       '@types/node':
         specifier: ^18.19.86
         version: 18.19.86
@@ -1202,6 +1205,9 @@ packages:
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
+
+  diff-match-patch@1.0.5:
+    resolution: {integrity: sha512-IayShXAgj/QMXgB0IWmKx+rOPuGMhqm5w6jvFxmVenXKIzRqTAAsbBPT3kWQeGANj3jGgvcvv4yK6SxqYmikgw==}
 
   diff@4.0.2:
     resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}
@@ -3939,6 +3945,8 @@ snapshots:
     optional: true
 
   didyoumean@1.2.2: {}
+
+  diff-match-patch@1.0.5: {}
 
   diff@4.0.2: {}
 

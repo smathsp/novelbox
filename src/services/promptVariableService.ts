@@ -1,6 +1,6 @@
 import { type Book, type Chapter } from './bookConfigService'
 import { PromptConfigService } from './promptConfigService'
-import { defaultChapterOutlinePrompt, defaultUpdateSettingsPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultExpandPrompt, defaultRewriteAbbreviatePrompt, defaultAbbreviatePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultBookNameAndDescPrompt } from '../constants'
+import * as DefaultPrompts from '../constants'
 
 /**
  * 查找指定章节编号的前一章内容
@@ -33,7 +33,7 @@ export const findPreviousChapterContent = (chapters: Chapter[], targetChapterNum
  * @returns 替换后的提示词
  */
 export const replacePromptVariables = async (book: Book, chapterNumber: number, detailContent: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('chapterOutline') || defaultChapterOutlinePrompt
+    const promptConfig = await PromptConfigService.getPromptByName('chapterOutline') || DefaultPrompts.defaultChapterOutlinePrompt
     const content = `第${chapterNumber}章\n${detailContent}`
     const previousContent = findPreviousChapterContent(book.content || [], chapterNumber)
 
@@ -68,7 +68,7 @@ export const findCurrentChapter = (chapters: Chapter[]): Chapter | undefined => 
  * @returns 替换后的提示词
  */
 export const replaceUpdateSettingsPromptVariables = async (book: Book, settings: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('updateSettings') || defaultUpdateSettingsPrompt
+    const promptConfig = await PromptConfigService.getPromptByName('updateSettings') || DefaultPrompts.defaultUpdateSettingsPrompt
     const currentChapter = findCurrentChapter(book.content || [])
     if (!currentChapter) {
         throw new Error('请先打开一个章节')
@@ -88,7 +88,7 @@ export const replaceUpdateSettingsPromptVariables = async (book: Book, settings:
  * @returns 替换后的提示词
  */
 export const replaceSettingsPromptVariables = async (book: Book, content: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('settings') || defaultSettingsPrompt
+    const promptConfig = await PromptConfigService.getPromptByName('settings') || DefaultPrompts.defaultSettingsPrompt
     return promptConfig
         .replace('${content}', content)
         .replace('${title}', book.title)
@@ -102,7 +102,7 @@ export const replaceSettingsPromptVariables = async (book: Book, content: string
  * @returns 替换后的提示词
  */
 export const replaceOutlinePromptVariables = async (book: Book, content: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('outline') || defaultOutlinePrompt
+    const promptConfig = await PromptConfigService.getPromptByName('outline') || DefaultPrompts.defaultOutlinePrompt
     return promptConfig
         .replace('${content}', content)
         .replace('${title}', book.title)
@@ -119,7 +119,7 @@ export const replaceOutlinePromptVariables = async (book: Book, content: string)
  * @returns 替换后的提示词
  */
 export const replaceExpandPromptVariables = async (book: Book, chapter: Chapter, chapterContent: string, selectedText: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('expand') || defaultExpandPrompt
+    const promptConfig = await PromptConfigService.getPromptByName('expand') || DefaultPrompts.defaultExpandPrompt
     return promptConfig
         .replace('${title}', book.title)
         .replace('${settings}', book.setting || '')
@@ -138,7 +138,7 @@ export const replaceExpandPromptVariables = async (book: Book, chapter: Chapter,
  * @returns 替换后的提示词
  */
 export const replaceRewritePromptVariables = async (book: Book, chapter: Chapter, chapterContent: string, selectedText: string, rewriteContent: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('rewrite') || defaultRewriteAbbreviatePrompt
+    const promptConfig = await PromptConfigService.getPromptByName('rewrite') || DefaultPrompts.defaultRewriteAbbreviatePrompt
     const content = `${selectedText}\n改写指导：${rewriteContent}`
     return promptConfig
         .replace('${title}', book.title)
@@ -160,7 +160,7 @@ export const replaceAbbreviatePromptVariables = async (book: Book, chapter: Chap
     if (!chapter.detailOutline?.detailContent) {
         throw new Error('请先编写本章细纲')
     }
-    const promptConfig = await PromptConfigService.getPromptByName('abbreviate') || defaultAbbreviatePrompt
+    const promptConfig = await PromptConfigService.getPromptByName('abbreviate') || DefaultPrompts.defaultAbbreviatePrompt
     return promptConfig
         .replace('${title}', book.title)
         .replace('${settings}', book.setting || '')
@@ -181,7 +181,7 @@ export const replaceChapterPromptVariables = async (book: Book, currentChapter: 
         throw new Error('请先编写本章细纲');
     }
 
-    const promptConfig = await PromptConfigService.getPromptByName('chapter') || defaultChapterPrompt;
+    const promptConfig = await PromptConfigService.getPromptByName('chapter') || DefaultPrompts.defaultChapterPrompt;
     const chapterNumber = parseInt(currentChapter.detailOutline.chapterNumber);
     const previousContent = findPreviousChapterContent(book.content || [], chapterNumber);
 
@@ -207,7 +207,7 @@ export const replaceContinuePromptVariables = async (book: Book, chapter: any, c
         throw new Error('请先编写本章细纲');
     }
 
-    const promptConfig = await PromptConfigService.getPromptByName('continue') || defaultContinuePrompt;
+    const promptConfig = await PromptConfigService.getPromptByName('continue') || DefaultPrompts.defaultContinuePrompt;
 
     return promptConfig
         .replace('${title}', book.title)
@@ -225,6 +225,16 @@ export const replaceContinuePromptVariables = async (book: Book, chapter: any, c
  * @returns 替换后的提示词
  */
 export const replaceBookNameAndDescPromptVariables = async (content: string): Promise<string> => {
-    const promptConfig = await PromptConfigService.getPromptByName('bookNameAndDesc') || defaultBookNameAndDescPrompt;
+    const promptConfig = await PromptConfigService.getPromptByName('bookNameAndDesc') || DefaultPrompts.defaultBookNameAndDescPrompt;
     return promptConfig.replace('${content}', content || '');
+}
+
+/**
+ * 替换校对提示词中的变量
+ * @param content 章节内容
+ * @returns 替换后的提示词
+ */
+export const replaceProofreadPromptVariables = async (content: string): Promise<string> => {
+    const promptConfig = DefaultPrompts.defaultProofreadPrompt;
+    return promptConfig.replace('${content}', content);
 }

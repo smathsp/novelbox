@@ -1,6 +1,9 @@
 <template>
   <Searcher v-if="quillEditor?.getQuill()" :quill="quillEditor.getQuill()"
     v-model:showSearchReplace="showSearchReplace" />
+  <Proofreader v-if="showProofreader" :show="showProofreader" :content="content"
+    :current-chapter="currentChapter" :current-book="currentBook" :quill="quillEditor?.getQuill()"
+    @close="showProofreader = false" />
   <div class="text-editor-container">
     <OutlineDetail v-if="showDetailOutline" :show="showDetailOutline" :current-chapter="currentChapter"
       :current-book="currentBook" @close="showDetailOutline = false" />
@@ -53,6 +56,7 @@ import Delta from 'quill-delta';
 import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables, replaceChapterPromptVariables, replaceContinuePromptVariables } from '../services/promptVariableService'
 import { type Book, type Chapter } from '../services/bookConfigService'
 import { AIConfigService } from '../services/aiConfigService'
+import Proofreader from './Proofreader.vue'
 
 
 const content = ref('')
@@ -365,11 +369,11 @@ const quillEditor = ref()
 const showSearchReplace = ref(false)
 const showDetailOutline = ref(false)
 const showSaveToast = ref(false)
+const showProofreader = ref(false)
 
 // 监听编辑器实例
 watch(() => quillEditor.value?.getQuill(), (editor) => {
   if (editor) {
-    console.log("set root")
     editor.root.setAttribute('spellcheck', 'false')
   }
 }, { immediate: true })
@@ -398,6 +402,7 @@ const editorOptions = {
           'bold',
           'undo', 'redo',
           { 'size': ['small', false, 'large'] },
+          { 'proofread': 'proofread', 'style': 'background-color:white !important;color:black !important;' },
           { 'search': 'search', 'style': 'background-color:white !important;color:black !important;' },
         ],
         ['ai-generate']
@@ -408,6 +413,9 @@ const editorOptions = {
         },
         'detail-outline': function () {
           showDetailOutline.value = !showDetailOutline.value;
+        },
+        'proofread': function () {
+          showProofreader.value = !showProofreader.value;
         },
         save: function () {
           if (props.currentChapter?.id) {
@@ -1164,4 +1172,19 @@ const handleSelectionChange = (range: any, oldRange: any, source: string) => {
 }
 
 /* Add other styles if needed */
+.text-editor-container :deep(.ql-proofread) {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 24px;
+  height: 24px;
+  margin: 0 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.text-editor-container :deep(.ql-proofread:hover) {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
 </style>
