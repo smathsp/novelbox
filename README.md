@@ -30,7 +30,14 @@ NovelBox是一款专为小说创作者设计的桌面应用程序，集成了多
 - **AI辅助创作**：
   - 智能续写：根据上下文自动生成后续内容
   - 内容扩写/缩写：调整文本篇幅
+  - 定向改写：根据指定要求智能改写选中内容
+  - 书名生成：智能生成符合内容风格的书名建议
+  - 简介生成：一键生成吸引读者的作品简介
   - 支持多种AI模型：OpenAI、Anthropic Claude、Google Gemini、DeepSeek
+- **智能校对**：
+  - 自动检测错别字和语法错误
+  - 智能纠错建议
+  - 一键应用修改
 - **文档导出**：支持导出为DOCX格式
 - **搜索和替换**：快速查找和修改文本内容
 - **字数统计**：实时显示章节字数
@@ -122,7 +129,14 @@ NovelBox is a desktop application designed specifically for novel writers, integ
 - **AI-Assisted Writing**:
   - Smart Continuation: Automatically generate subsequent content based on context
   - Content Expansion/Condensation: Adjust text length
+  - Targeted Rewriting: Intelligently rewrite selected content according to specific requirements
+  - Title Generation: Smart suggestions for book titles that match the content style
+  - Synopsis Generation: One-click generation of engaging book descriptions
   - Support for Multiple AI Models: OpenAI, Anthropic Claude, Google Gemini, etc.
+- **Smart Proofreading**:
+  - Automatic detection of typos and grammatical errors
+  - Intelligent correction suggestions
+  - One-click apply modifications
 - **Document Export**: Support for exporting to DOCX format
 - **Search and Replace**: Quickly find and modify text content
 - **Word Count**: Real-time display of chapter word count
