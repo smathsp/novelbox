@@ -290,8 +290,8 @@ const generateDescription = async () => {
 }
 const applyAIContent = () => {
   const content = aiOutputContent.value
-  const titleMatch = content.match(/书名:\s*([^\n]+)/)
-  const descMatch = content.match(/简介:\s*([\s\S]*?)(?=\n\n|$)/)
+  const titleMatch = content.match(/书名[:：]\s*([^\n]+)/)
+  const descMatch = content.match(/简介[:：]\s*([\s\S]*?)(?=\n\n|$)/)
 
   if (titleMatch && descMatch) {
     newBook.title = titleMatch[1].trim()

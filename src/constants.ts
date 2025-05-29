@@ -65,7 +65,19 @@ export const AI_PROVIDERS: AIProvider[] = [
 ]
 
 // 提示词配置
-export const defaultBookNameAndDescPrompt = '根据以下内容，生成一个引人入胜的小说书名和针对这个书名的简介，确保只生成书名和简介不生成任何其他信息，输出格式是：\n书名:\n简介:\n\n${content}'
+export const defaultBookNameAndDescPrompt = `请先分析以下内容，判断小说类型（如网络小说、严肃文学、轻小说、起点风格、番茄风格等），然后根据判断的类型生成一个符合该类型特点和习惯的引人入胜的小说书名和简介。
+
+分析步骤：
+1. 仔细阅读内容，识别题材、风格、情节特点
+2. 确定最匹配的小说类型
+3. 根据该类型的命名习惯和风格特点，生成合适的书名
+4. 根据该类型的市场偏好，撰写吸引目标读者的简介
+
+请确保只生成书名和简介，不生成任何其他信息，输出格式是：
+书名:
+简介:
+
+\${content}`
 
 export const defaultSettingsPrompt = `请根据以下内容，生成一个详细的小说设定。设定必须包含以下部分：
 
