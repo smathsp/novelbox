@@ -138,19 +138,19 @@ export const defaultOutlinePrompt = `请根据以下信息，创作一个引人�
 
 请直接输出文本内容，不要使用任何markdown格式，不要使用除中文外的其他语言。`
 
-export const defaultChapterOutlinePrompt = '根据以下内容，生成本章节细纲，确保只生成本章节细纲不生成任何其他信息，小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,前文:${previous}\n,本章大致剧情:${content}'
+export const defaultChapterOutlinePrompt = '根据以下内容，生成本章节细纲，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成本章节细纲不生成任何其他信息，小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,前文:${previous}\n,本章大致剧情:${content}'
 
-export const defaultChapterPrompt = '请根据以下信息生成一个完整的小说章节，要求字数在2500字以上，确保只生成小说章节不生成任何其他信息。\n小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,前文:${previous}\n本章细纲:${chapterOutline}'
+export const defaultChapterPrompt = '请根据以下信息生成一个完整的小说章节，要求字数在2500字以上，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成小说章节不生成任何其他信息。\n小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,前文:${previous}\n本章细纲:${chapterOutline}'
 
-export const defaultContinuePrompt = '请根据以下信息续写小说内容，要求字数在400字左右，确保只生成小说内容不生成任何其他信息。\n小说名:${title}\n简介:${description}\n设定:${settings}\n大纲:${outline}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n续写指导:${content}'
+export const defaultContinuePrompt = '请根据以下信息续写小说内容，要求字数在400字左右，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成小说内容不生成任何其他信息。\n小说名:${title}\n简介:${description}\n设定:${settings}\n大纲:${outline}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n续写指导:${content}'
 
-export const defaultExpandPrompt = '请根据以下内容扩写小说段落，只对需要扩写的内容进行扩写，保持原有风格和情节连贯性，确保只生成段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要扩写的段落:${content}'
+export const defaultExpandPrompt = '请根据以下内容扩写小说段落，只对需要扩写的内容进行扩写，保持原有风格和情节连贯性，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要扩写的段落:${content}'
 
-export const defaultAbbreviatePrompt = '请根据以下内容缩写小说段落，只对需要缩写的内容进行缩写，保留核心情节和关键描写，确保只生成段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要缩写的段落:${content}'
+export const defaultAbbreviatePrompt = '请根据以下内容缩写小说段落，只对需要缩写的内容进行缩写，保留核心情节和关键描写，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要缩写的段落:${content}'
 
-export const defaultRewriteAbbreviatePrompt = '请根据以下内容改写小说段落，只对需要改写的内容进行改写，确保只改写后段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要改写的段落:${content}'
+export const defaultRewriteAbbreviatePrompt = '请根据以下内容改写小说段落，只对需要改写的内容进行改写，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只改写后段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要改写的段落:${content}'
 
-export const defaultUpdateSettingsPrompt = '请总结本章内容中的新增设定和改变的设定，包括人物设定、能力设定、物品设定等等，并更新小说的当前设定，确保只生成更新后的设定不生成任何其他信息。\n小说名:${title}\n简介:${description}\n当前设定:${settings}\n本章内容:${chapter}'
+export const defaultUpdateSettingsPrompt = '请总结本章内容中的新增设定和改变的设定，包括人物设定、能力设定、物品设定等等，并更新小说的当前设定，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成更新后的设定不生成任何其他信息。\n小说名:${title}\n简介:${description}\n当前设定:${settings}\n本章内容:${chapter}'
 
 export const defaultProofreadPrompt = `请对以下小说章节内容进行校对，检查以下方面的问题：
 1. 错别字和用词不当
