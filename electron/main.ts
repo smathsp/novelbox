@@ -28,8 +28,11 @@ function createWindow() {
 
   // 检查localStorage中是否有工作区数据
   win.webContents.on('did-finish-load', async () => {
-    const hasWorkspace = await win.webContents.executeJavaScript('localStorage.getItem("workspacePath") !== null');
-    if (!hasWorkspace) {
+    const workspacePath = await win.webContents.executeJavaScript('localStorage.getItem("workspacePath")');
+    const hasWorkspace = workspacePath !== null;
+    const dirExists = hasWorkspace ? await fs.access(workspacePath).then(() => true).catch(() => false) : false;
+
+    if (!hasWorkspace || !dirExists) {
       const { canceled, filePaths } = await dialog.showOpenDialog({
         title: '选择工作区目录',
         properties: ['openDirectory']
