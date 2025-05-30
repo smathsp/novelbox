@@ -138,7 +138,7 @@ function createMenu() {
             dialog.showMessageBox({
               title: '关于NovelBox',
               message: 'NovelBox',
-              detail: `版本: ${app.getVersion()}\n一个专业的小说写作工具\n报告错误：novelbox.feedback@gmail.com\n反馈QQ群：461287820。`,
+              detail: `版本: ${app.getVersion()}\n一个专业的小说写作工具\n\n本项目采用GNU通用公共许可证v3.0（GPL-3.0）\n\n报告错误：novelbox.feedback@gmail.com\n反馈QQ群：461287820。`,
               buttons: ['确定'],
               icon: path.join(__dirname, '../public/icon.ico')
             });

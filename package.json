@@ -4,6 +4,7 @@
   "version": "0.1.8",
   "description": "NovelBox小说写作应用",
   "author": "novelbox.feedback@gmail.com",
+  "license": "GPL-3.0",
   "main": "./dist/electron/main.js",
   "scripts": {
     "electron:build": "tsc -p tsconfig.electron.json && vite build && if not exist dist\\electron mkdir dist\\electron && copy electron\\main.ts dist\\electron\\ && copy electron\\preload.ts dist\\electron\\ && tsc dist\\electron\\main.ts dist\\electron\\preload.ts",
@@ -62,7 +63,14 @@
     "files": [
       "dist/**/*",
       "dist/electron/**/*",
-      "package.json"
+      "package.json",
+      "LICENSE"
+    ],
+    "extraResources": [
+      {
+        "from": "LICENSE",
+        "to": "../LICENSE"
+      }
     ],
     "win": {
       "target": [
