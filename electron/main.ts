@@ -265,7 +265,13 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
     return { success: true, content };
   } catch (error: any) {
     console.error('读取文件失败:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    };
   }
 });
 
@@ -276,7 +282,13 @@ ipcMain.handle('write-file', async (_event, { filePath, content }: { filePath: s
     return { success: true };
   } catch (error: any) {
     console.error('写入文件失败:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    };
   }
 });
 
@@ -287,7 +299,13 @@ ipcMain.handle('write-blob-file', async (_event, { filePath, buffer }: { filePat
     return { success: true };
   } catch (error: any) {
     console.error('写入二进制文件失败:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    };
   }
 });
 
@@ -304,7 +322,13 @@ ipcMain.handle('list-files', async (_event, dirPath: string) => {
     };
   } catch (error: any) {
     console.error('列出目录内容失败:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    };
   }
 });
 
@@ -315,6 +339,12 @@ ipcMain.handle('delete-file', async (_event, filePath: string) => {
     return { success: true };
   } catch (error: any) {
     console.error('删除文件失败:', error);
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    };
   }
 });

@@ -1,3 +1,5 @@
+import { DirectoryNotFoundError } from '../errors/fileStorageError';
+
 type FileItem = {
   name: string;
   type: 'file' | 'directory';
@@ -25,6 +27,9 @@ export class FileStorageService {
   static async writeFile(filePath: string, content: string): Promise<void> {
     const result = await window.electron.ipcRenderer.invoke('write-file', { filePath, content });
     if (!result.success) {
+      if (result.error?.code === 'ENOENT') {
+        throw new DirectoryNotFoundError();
+      }
       throw new Error(`Failed to write file: ${result.error}`);
     }
   }
@@ -40,6 +45,9 @@ export class FileStorageService {
   static async deleteFile(filePath: string): Promise<void> {
     const result = await window.electron.ipcRenderer.invoke('delete-file', filePath);
     if (!result.success) {
+      if (result.error?.code === 'ENOENT') {
+        throw new DirectoryNotFoundError();
+      }
       throw new Error(`Failed to delete file: ${result.error}`);
     }
   }
@@ -51,6 +59,9 @@ export class FileStorageService {
       buffer: Buffer.from(buffer)
     });
     if (!result.success) {
+      if (result.error?.code === 'ENOENT') {
+        throw new DirectoryNotFoundError();
+      }
       throw new Error(`Failed to write blob file: ${result.error}`);
     }
   }

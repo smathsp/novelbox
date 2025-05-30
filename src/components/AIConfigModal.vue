@@ -508,7 +508,7 @@ const deleteCustomProvider = async () => {
     }
   } catch (error) {
     console.error('删除自定义服务商失败:', error)
-    ElMessage.error('删除自定义服务商失败')
+    ElMessage.error(error.message)
   }
 }
 
@@ -561,8 +561,8 @@ const saveCustomProvider = async () => {
     closeCustomProviderModal()
     ElMessage.success('自定义服务商添加成功')
   } catch (error) {
-    console.error('保存自定义服务商失败:', error)
-    ElMessage.error('保存自定义服务商失败')
+    console.error('保存自定义服务商失败:', error.message)
+    ElMessage.error(error.message)
   }
 }
 

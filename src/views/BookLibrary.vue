@@ -148,6 +148,7 @@ const saveBooks = async () => {
       await BookConfigService.saveBook(book)
     } catch (error) {
       console.error('保存书籍失败', error)
+      ElMessage.error(error.message)
     }
   }
 }
