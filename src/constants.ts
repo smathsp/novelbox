@@ -50,7 +50,7 @@ export const AI_PROVIDERS: AIProvider[] = [
       { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' }
     ],
     defaultTemperature: 0.7,
-    defaultMaxTokens: 8192,
+    defaultMaxTokens: 25000,
     defaultTopP: 0.95
   },
   {
