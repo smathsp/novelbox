@@ -1,3 +1,4 @@
+import './buffer-polyfill'
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import ElementPlus from 'element-plus'

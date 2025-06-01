@@ -25,6 +25,7 @@
     "ajv-formats": "^3.0.1",
     "ast-types": "^0.14.2",
     "axios": "^1.8.3",
+    "buffer": "^6.0.3",
     "diff-match-patch": "^1.0.5",
     "docx": "^9.3.0",
     "element-plus": "^2.5.6",

@@ -19,5 +19,17 @@ export default defineConfig({
         manualChunks: {}
       }
     }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Node.js global to browser globalThis
+      define: {
+        global: 'globalThis',
+      },
+    }
+  },
+  define: {
+    // 确保Buffer可用
+    global: 'window'
   }
 })
