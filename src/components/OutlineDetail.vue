@@ -13,7 +13,7 @@
       <span class="chapter-label">章</span>
     </div>
     <div class="outline-content">
-      <textarea v-model="detailContent" class="content-input" placeholder="请输入本章细纲..." @input="saveContent"
+      <textarea v-model="detailContent" class="content-input" placeholder="请输入本章细纲..." @input="debouncedSave"
         :disabled="isGenerating"></textarea>
       <div class="button-group">
         <button @click="generateAIContent" class="ai-btn"
@@ -48,11 +48,25 @@ const chapterNumber = ref('')
 const detailContent = ref('')
 const isGenerating = ref(false)
 
+// 添加防抖相关的变量
+let saveTimeout: NodeJS.Timeout | null = null
+const SAVE_DELAY = 2000 // 2秒的防抖延迟
+
 const validateChapterNumber = () => {
   const num = parseInt(chapterNumber.value)
   if (num < 1) {
     chapterNumber.value = '1'
   }
+}
+
+// 修改保存函数，添加防抖
+const debouncedSave = () => {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+  }
+  saveTimeout = setTimeout(() => {
+    saveContent()
+  }, SAVE_DELAY)
 }
 
 let aiService: AIService
