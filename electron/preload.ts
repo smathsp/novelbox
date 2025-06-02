@@ -19,7 +19,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.send('close-window'),
 
   // AI配置
-  onOpenAISettings: (callback: () => void) => ipcRenderer.on('open-ai-settings', () => callback())
+  onOpenAISettings: (callback: () => void) => ipcRenderer.on('open-ai-settings', () => callback()),
+  getVersion: () => ipcRenderer.invoke('get-version'),
+  onOpenAboutPage: (callback: () => void) => ipcRenderer.on('open-about-page', () => callback()),
+  
+  // 系统操作
+  openExternal: (url: string) => ipcRenderer.send('open-external', url)
 });
 
 // 监听来自主进程的菜单事件

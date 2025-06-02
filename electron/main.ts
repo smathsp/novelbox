@@ -135,13 +135,10 @@ function createMenu() {
         {
           label: '关于',
           click: async () => {
-            dialog.showMessageBox({
-              title: '关于NovelBox',
-              message: 'NovelBox',
-              detail: `版本: ${app.getVersion()}\n一个专业的小说写作工具\n\n本项目采用GNU通用公共许可证v3.0（GPL-3.0）\n\n报告错误：novelbox.feedback@gmail.com\n反馈QQ群：461287820。`,
-              buttons: ['确定'],
-              icon: path.join(__dirname, '../public/icon.ico')
-            });
+            const win = BrowserWindow.getFocusedWindow();
+            if (win) {
+              win.webContents.send('open-about-page');
+            }
           }
         },
         {
@@ -350,4 +347,14 @@ ipcMain.handle('delete-file', async (_event, filePath: string) => {
       }
     };
   }
+});
+
+// 获取版本号
+ipcMain.handle('get-version', () => {
+  return app.getVersion();
+});
+
+// 打开外部链接
+ipcMain.on('open-external', (_event, url: string) => {
+  shell.openExternal(url);
 });

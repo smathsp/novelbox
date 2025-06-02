@@ -14,6 +14,11 @@ interface ElectronAPI {
 
   // AI配置
   onOpenAISettings: (callback: () => void) => void;
+  onOpenAboutPage: (callback: () => void) => void;
+  getVersion: () => Promise<string>;
+  
+  // 系统操作
+  openExternal: (url: string) => void;
 }
 
 declare global {
