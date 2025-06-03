@@ -783,7 +783,6 @@ const handleSelectionChange = (range: any, oldRange: any, source: string) => {
     const editorRect = editor.container.getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    const editorScrollTop = editor.scrollTop;
 
     // 计算工具栏的初始位置
     const toolbarWidth = 200; // 工具栏的大致宽度
@@ -794,12 +793,12 @@ const handleSelectionChange = (range: any, oldRange: any, source: string) => {
     const adjustedLeft = Math.min(initialLeft, rightBoundary - toolbarWidth - 10); // 10px的边距
 
     // 计算工具栏的垂直位置，考虑编辑器滚动
-    const top = editorRect.top + bounds.top + scrollTop - 40 + editorScrollTop;
+    const toolbarTop = editorRect.top + bounds.top + scrollTop - 40;
 
-    // 确保工具栏不会超出编辑器顶部
+    // 确保工具栏不会超出编辑器顶部和底部
     const minTop = editorRect.top + scrollTop;
     const maxTop = editorRect.bottom + scrollTop - 40;
-    const adjustedTop = Math.max(minTop, Math.min(top, maxTop));
+    const adjustedTop = Math.max(minTop, Math.min(toolbarTop, maxTop));
 
     toolbarStyle.value = {
       top: `${adjustedTop}px`,
