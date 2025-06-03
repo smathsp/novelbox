@@ -159,6 +159,28 @@ const expandSelectedText = async () => {
   }
 };
 
+// 添加清理状态的函数
+const cleanupRewriteState = () => {
+  const toolbar = document.querySelector('.floating-toolbar');
+  toolbar?.classList.remove('show-rewrite');
+  
+  // 移除高亮效果
+  if (selectedTextRange.value) {
+    const editor = quillEditor.value?.getQuill();
+    if (editor) {
+      editor.formatText(selectedTextRange.value.index, selectedTextRange.value.length, {
+        'background': false,
+        'color': false,
+      });
+      // 保持选中状态
+      editor.setSelection(selectedTextRange.value.index, selectedTextRange.value.length, 'user');
+    }
+  }
+  
+  rewriteContent.value = '';
+  showRewriteInput.value = false;
+};
+
 const handleRewriteInputFocus = () => {
   if (!selectedTextRange.value) return;
   const editor = quillEditor.value.getQuill();
@@ -168,33 +190,17 @@ const handleRewriteInputFocus = () => {
     'color': '#fff',
   });
 
-  const removeHighlight = (event, index, length) => {
-    const toolbar = document.querySelector('.floating-toolbar');
-    if (!toolbar?.contains(event.target)) {
-      const editor = quillEditor.value.getQuill();
-
-      editor.formatText(index, length, {
-        'background': false,
-        'color': false,
-      });
-      document.removeEventListener('click', (e) => removeHighlight(e, index, length));
-    }
-  };
-
-  const { index: tempIndex, length: tempLength } = selectedTextRange.value
-  document.addEventListener('click', (e) => removeHighlight(e, tempIndex, tempLength));
-
   nextTick(() => {
     const input = document.querySelector('.rewrite-input') as HTMLInputElement;
     if (input) {
       input.focus();
     }
-  })
+  });
 };
 
 const rewriteSelectedText = async () => {
   const editor = quillEditor.value.getQuill();
-  const { index: tempIndex, length: tempLength } = selectedTextRange.value
+  const { index: tempIndex, length: tempLength } = selectedTextRange.value;
 
   if (rewriteContent.value) {
     if (!props.currentBook) {
@@ -232,12 +238,11 @@ const rewriteSelectedText = async () => {
       // 在内容更新后重新设置选中状态
       nextTick(() => {
         editor.setSelection(tempIndex, text.length, 'user');
+        cleanupRewriteState();
       });
       if (props.currentChapter?.id) {
         saveChapterContent(props.currentChapter.id, content.value);
       }
-      rewriteContent.value = '';
-      showRewriteInput.value = false;
     } catch (error) {
       console.error('AI改写失败:', error);
       ElMessage.error('AI改写失败，请检查网络连接和API配置');
@@ -276,7 +281,7 @@ const rewriteSelectedText = async () => {
         }
       }
     } else {
-      document.querySelector('.floating-toolbar')?.classList.remove('show-rewrite');
+      cleanupRewriteState();
     }
   }
 }
@@ -596,6 +601,7 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
       const latestContent = await getLatestChapterContent(newChapter.id);
       
       const editor = quillEditor.value?.getQuill();
+      console.log('editor', editor);
       if (editor) {
         try {
           // 暂时禁用编辑器和历史记录
@@ -759,6 +765,18 @@ const handleAIContinue = async () => {
 };
 
 const handleSelectionChange = (range: any, oldRange: any, source: string) => {
+  console.log('handleSelectionChange', range, oldRange, source);
+  
+  // 如果点击在工具栏或输入框外，且当前有高亮状态，则移除高亮
+  if (showRewriteInput.value) {
+    const toolbar = document.querySelector('.floating-toolbar');
+    const rewriteInput = document.querySelector('.rewrite-input');
+    if ((!toolbar || !toolbar.contains(document.activeElement)) && 
+        (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
+      cleanupRewriteState();
+    }
+  }
+
   if (range && range.length > 0 && source === 'user') {
     const editor = quillEditor.value.getQuill();
     const bounds = editor.getBounds(range.index, range.length);
