@@ -47,7 +47,9 @@ export const AI_PROVIDERS: AIProvider[] = [
     models: [
       { id: 'gemini-2.0-flash', name: 'Gemini Flash' },
       { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking' },
-      { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' }
+      { id: 'gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 pro' },
+      { id: 'gemini-2.5-flash-preview-04-17-thinking', name: 'Gemini 2.5 Flash Thinking' },
+      { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash' }
     ],
     defaultTemperature: 0.7,
     defaultMaxTokens: 25000,
