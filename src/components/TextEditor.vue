@@ -20,11 +20,18 @@
         内容保存成功
       </div>
 
+      <!-- 添加光标图标 -->
+      <div v-if="showContinueCursor" class="continue-cursor" :style="continueCursorStyle">
+        <svg viewBox="0 0 24 24" width="28" height="28">
+          <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+        </svg>
+      </div>
+
       <QuillEditor v-model:content="content" :options="editorOptions" contentType="html" theme="snow"
         @textChange="onTextChange" class="h-full" ref="quillEditor" />
       <div class="ai-continue-toolbar">
         <input type="text" v-model="continuePrompt" placeholder="输入续写的剧情指导..." class="continue-input"
-          :disabled="isGenerating" />
+          :disabled="isGenerating" @focus="handleContinueInputFocus" @blur="handleContinueInputBlur" />
         <button @click="handleAIContinue" class="continue-btn" :class="{ 'stop-btn': isGenerating }">
           {{ isGenerating ? '停止生成' : 'AI续写' }}
         </button>
@@ -51,7 +58,7 @@ import Searcher from './Searcher.vue'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import OutlineDetail from './OutlineDetail.vue'
 import AIService from '../services/aiService'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import Delta from 'quill-delta';
 import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables, replaceChapterPromptVariables, replaceContinuePromptVariables } from '../services/promptVariableService'
 import { type Book, type Chapter } from '../services/bookConfigService'
@@ -68,6 +75,9 @@ const toolbarStyle = ref({ top: '0px', left: '0px' })
 const selectedTextRange = ref<any>(null)
 const showRewriteInput = ref(false)
 const rewriteContent = ref('')
+const showContinueCursor = ref(false)
+const continueCursorStyle = ref({ top: '0px', left: '0px' })
+const savedSelection = ref<{ index: number; length: number } | null>(null)
 
 // 字数统计
 const chapterWordCount = ref(0)
@@ -601,7 +611,6 @@ watch(() => props.currentChapter, async (newChapter, oldChapter) => {
       const latestContent = await getLatestChapterContent(newChapter.id);
       
       const editor = quillEditor.value?.getQuill();
-      console.log('editor', editor);
       if (editor) {
         try {
           // 暂时禁用编辑器和历史记录
@@ -703,70 +712,182 @@ const handleAIContinue = async () => {
   if (isGenerating.value) {
     generationTask.value?.cancel?.();
     isGenerating.value = false;
+    showContinueCursor.value = false;
     return;
   }
 
   if (!props.currentChapter?.id) return;
 
+  // 先恢复编辑器状态
+  const editorElement = document.querySelector('.ql-editor') as HTMLElement;
+  if (editorElement) {
+    editorElement.style.overflowY = 'auto';
+    editorElement.style.pointerEvents = 'auto';
+  }
+
+  // 如果输入框有焦点，先让它失去焦点
+  const continueInput = document.querySelector('.continue-input') as HTMLInputElement;
+  if (document.activeElement === continueInput) {
+    continueInput.blur();
+  }
+
+  // 等待一小段时间确保状态更新
+  await new Promise(resolve => setTimeout(resolve, 100));
+
   const editor = quillEditor.value.getQuill();
-  const currentContent = editor.getText();
+  
+  // 使用保存的选区状态
+  if (savedSelection.value) {
+    editor.setSelection(savedSelection.value.index, savedSelection.value.length);
+    
+    // 更新光标图标位置
+    const bounds = editor.getBounds(savedSelection.value.index, 0);
+    const editorRect = editor.container.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
-  const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService(aiConfig);
+    continueCursorStyle.value = {
+      top: `${editorRect.top + bounds.top + scrollTop}px`,
+      left: `${editorRect.left + bounds.left + scrollLeft}px`
+    };
+    showContinueCursor.value = true;
+  } else {
+    // 如果没有保存的选区，使用当前选区
+    const selection = editor.getSelection();
+    
+    if (selection) {
+      // 更新光标图标位置
+      const bounds = editor.getBounds(selection.index, 0);
+      const editorRect = editor.container.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
+      continueCursorStyle.value = {
+        top: `${editorRect.top + bounds.top + scrollTop}px`,
+        left: `${editorRect.left + bounds.left + scrollLeft}px`
+      };
+      showContinueCursor.value = true;
+    } else {
+      // 如果没有选区，使用当前光标位置
+      editor.setSelection(editor.getLength(), 0);
+    }
+  }
+
+  // 保存当前光标位置
+  const currentPosition = editor.getSelection()?.index || editor.getLength();
+
+  // 显示续写位置选择对话框
   try {
-    const prompt = await replaceContinuePromptVariables(
-      props.currentBook,
-      props.currentChapter,
-      currentContent,
-      continuePrompt.value
-    );
-
-    let generatedText = '';
-    isGenerating.value = true;
-
-
-    // 直接保存生成任务的引用
-    generationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
-      if (error) {
-        ElMessage.error(`AI续写失败：${error}`);
-        isGenerating.value = false;
-        generationTask.value = null;
-        return;
-      }
-      if (complete) {
-        isGenerating.value = false;
-        generationTask.value = null;
-        if (props.currentChapter?.id) {
-          saveChapterContent(props.currentChapter.id, content.value);
-        }
-      }
-      generatedText += text;
-      if (!complete) {
-        editor.updateContents(
-          new Delta()
-            .retain(editor.getLength() - 1)
-            .insert(text),
-          'user'
-        );
-      }
+    const result = await ElMessageBox({
+      title: '续写位置',
+      message: '请选择续写位置',
+      showCancelButton: true,
+      confirmButtonText: '当前位置',
+      cancelButtonText: '章节末尾',
+      type: 'info',
+      center: true,
+      customClass: 'continue-position-dialog',
+      showClose: true,
+      closeOnClickModal: false,
+      closeOnPressEscape: true,
+      distinguishCancelAndClose: true
+    }).catch((action) => {
+      return action;
     });
 
-  } catch (error) {
-    console.error('AI续写失败:', error);
-    if (error instanceof Error) {
-      ElMessage.error(`AI续写失败：${error.message}`);
+    let currentContent = '';
+    let insertPosition = 0;
+
+
+    // 根据返回值判断用户的选择
+    if (result === 'confirm') {
+      // 从当前位置续写
+      currentContent = editor.getText(0, currentPosition);
+      insertPosition = currentPosition;
+      // 保持在当前位置，不滚动
+      editor.setSelection(currentPosition, 0);
+      // 隐藏光标图标
+      showContinueCursor.value = false;
+    } else if (result === 'cancel') {
+      // 从章节末尾续写
+      currentContent = editor.getText();
+      insertPosition = editor.getLength();
+      // 滚动到章节末尾
+      editor.setSelection(insertPosition, 0);
+      editor.scrollIntoView();
+      // 隐藏光标图标
+      showContinueCursor.value = false;
+    } else if (result === 'close') {
+      // 用户关闭对话框
+      showContinueCursor.value = false;
+      return;
     } else {
-      ElMessage.error('AI续写失败，请检查网络连接和API配置');
+      showContinueCursor.value = false;
+      return;
     }
-    isGenerating.value = false;
-    generationTask.value = null;
+
+    // 清除保存的选区状态
+    savedSelection.value = null;
+
+    const aiConfig = await AIConfigService.getCurrentProviderConfig();
+    const aiService = new AIService(aiConfig);
+
+    try {
+      const prompt = await replaceContinuePromptVariables(
+        props.currentBook,
+        props.currentChapter,
+        currentContent,
+        continuePrompt.value
+      );
+
+      let generatedText = '';
+      isGenerating.value = true;
+
+      // 直接保存生成任务的引用
+      generationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
+        if (error) {
+          ElMessage.error(`AI续写失败：${error}`);
+          isGenerating.value = false;
+          generationTask.value = null;
+          return;
+        }
+        if (complete) {
+          isGenerating.value = false;
+          generationTask.value = null;
+          if (props.currentChapter?.id) {
+            saveChapterContent(props.currentChapter.id, content.value);
+          }
+        }
+        generatedText += text;
+        if (!complete) {
+          // 在指定位置插入内容
+          const delta = new Delta()
+            .retain(insertPosition)
+            .insert(text);
+          editor.updateContents(delta, 'user');
+          
+          // 更新插入位置，以便下一次插入
+          insertPosition += text.length;
+        }
+      });
+
+    } catch (error) {
+      console.error('AI续写失败:', error);
+      if (error instanceof Error) {
+        ElMessage.error(`AI续写失败：${error.message}`);
+      } else {
+        ElMessage.error('AI续写失败，请检查网络连接和API配置');
+      }
+      isGenerating.value = false;
+      generationTask.value = null;
+    }
+  } catch (error) {
+    // 用户关闭对话框
+    return;
   }
 };
 
 const handleSelectionChange = (range: any, oldRange: any, source: string) => {
-  console.log('handleSelectionChange', range, oldRange, source);
-  
   // 如果点击在工具栏或输入框外，且当前有高亮状态，则移除高亮
   if (showRewriteInput.value) {
     const toolbar = document.querySelector('.floating-toolbar');
@@ -817,6 +938,45 @@ const handleSelectionChange = (range: any, oldRange: any, source: string) => {
       rewriteContent.value = '';
       selectedTextRange.value = null;
     }
+  }
+};
+
+const handleContinueInputFocus = () => {
+  const editor = quillEditor.value.getQuill();
+  const selection = editor.getSelection();
+  
+  
+  // 保存选区状态
+  if (selection) {
+    savedSelection.value = { index: selection.index, length: selection.length };
+    const bounds = editor.getBounds(selection.index, 0);
+    const editorRect = editor.container.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    continueCursorStyle.value = {
+      top: `${editorRect.top + bounds.top + scrollTop}px`,
+      left: `${editorRect.left + bounds.left + scrollLeft}px`
+    };
+    showContinueCursor.value = true;
+  }
+
+  // 保持滚动条可见但禁用滚动功能
+  const editorElement = document.querySelector('.ql-editor') as HTMLElement;
+  if (editorElement) {
+    editorElement.style.overflowY = 'scroll';
+    editorElement.style.pointerEvents = 'none';
+  }
+};
+
+const handleContinueInputBlur = () => {
+  showContinueCursor.value = false;
+  
+  // 恢复编辑器滚动
+  const editorElement = document.querySelector('.ql-editor') as HTMLElement;
+  if (editorElement) {
+    editorElement.style.overflowY = 'auto';
+    editorElement.style.pointerEvents = 'auto';
   }
 };
 </script>
@@ -1210,5 +1370,46 @@ const handleSelectionChange = (range: any, oldRange: any, source: string) => {
 .text-editor-container :deep(.ql-proofread:hover) {
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
+}
+
+.continue-cursor {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  animation: slideDown 1.5s infinite;
+  color: #f97316;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  padding: 4px;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate(-50%, calc(-50% + 6px));
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+:deep(.continue-position-dialog .el-message-box__content) {
+  padding: 20px;
+}
+
+:deep(.continue-position-dialog .el-message-box__btns) {
+  padding: 10px 20px 20px;
+}
+
+:deep(.continue-position-dialog .el-button) {
+  padding: 12px 24px;
+  font-size: 16px;
 }
 </style>

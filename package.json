@@ -32,6 +32,7 @@
     "html-to-text": "^9.0.5",
     "https-proxy-agent": "^7.0.6",
     "openai": "^4.89.0",
+    "quill": "^2.0.3",
     "quill-delta": "5.1.0",
     "uuid": "^11.1.0",
     "vue": "^3.5.13",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.19.86",
+    "@types/quill": "^2.0.14",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.7.0",
     "autoprefixer": "10.4.14",
