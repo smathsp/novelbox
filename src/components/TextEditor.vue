@@ -21,7 +21,8 @@
       </div>
 
       <!-- 添加光标图标 -->
-      <div v-if="showContinueCursor" class="continue-cursor" :style="continueCursorStyle">
+      <div v-if="aiTextContinueController.showContinueCursorValue" class="continue-cursor" 
+        :style="aiTextContinueController.continueCursorStyleValue">
         <svg viewBox="0 0 24 24" width="28" height="28">
           <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
         </svg>
@@ -30,10 +31,10 @@
       <QuillEditor v-model:content="content" :options="editorOptions" contentType="html" theme="snow"
         @textChange="onTextChange" class="h-full" ref="quillEditor" />
       <div class="ai-continue-toolbar">
-        <input type="text" v-model="continuePrompt" placeholder="输入续写的剧情指导..." class="continue-input"
-          :disabled="isGenerating" @focus="handleContinueInputFocus" @blur="handleContinueInputBlur" />
-        <button @click="handleAIContinue" class="continue-btn" :class="{ 'stop-btn': isGenerating }">
-          {{ isGenerating ? '停止生成' : 'AI续写' }}
+        <input type="text" v-model="aiTextContinueController.continuePromptValue" placeholder="输入续写的剧情指导..." class="continue-input"
+          :disabled="aiTextContinueController.isGeneratingValue" @focus="handleContinueInputFocus" @blur="handleContinueInputBlur" />
+        <button @click="handleAIContinue" class="continue-btn" :class="{ 'stop-btn': aiTextContinueController.isGeneratingValue }">
+          {{ aiTextContinueController.isGeneratingValue ? '停止生成' : 'AI续写' }}
         </button>
       </div>
       <!-- Floating Toolbar -->
@@ -58,26 +59,28 @@ import Searcher from './Searcher.vue'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import OutlineDetail from './OutlineDetail.vue'
 import AIService from '../services/aiService'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import Delta from 'quill-delta';
-import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables, replaceChapterPromptVariables, replaceContinuePromptVariables } from '../services/promptVariableService'
+import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables, replaceChapterPromptVariables } from '../services/promptVariableService'
 import { type Book, type Chapter } from '../services/bookConfigService'
 import { AIConfigService } from '../services/aiConfigService'
 import Proofreader from './Proofreader.vue'
+import AITextContinueController from '../controllers/AITextContinueController'
 
 
 const content = ref('')
-const continuePrompt = ref('')
-const isGenerating = ref(false)
-const generationTask = ref<{ cancel?: () => void; error?: string; text?: string } | null>(null)
 const showFloatingToolbar = ref(false)
 const toolbarStyle = ref({ top: '0px', left: '0px' })
 const selectedTextRange = ref<any>(null)
 const showRewriteInput = ref(false)
 const rewriteContent = ref('')
-const showContinueCursor = ref(false)
-const continueCursorStyle = ref({ top: '0px', left: '0px' })
-const savedSelection = ref<{ index: number; length: number } | null>(null)
+
+// AI续写控制器
+const aiTextContinueController = new AITextContinueController({
+  onContentSave: (chapterId, content) => {
+    saveChapterContent(chapterId, content);
+  }
+});
 
 // 字数统计
 const chapterWordCount = ref(0)
@@ -708,184 +711,22 @@ const saveChapterContent = async (chapterId?: string, contentToSave?: string) =>
   }
 }
 
+// 使用控制器的AI续写方法
 const handleAIContinue = async () => {
-  if (isGenerating.value) {
-    generationTask.value?.cancel?.();
-    isGenerating.value = false;
-    showContinueCursor.value = false;
-    return;
-  }
-
-  if (!props.currentChapter?.id) return;
-
-  // 先恢复编辑器状态
-  const editorElement = document.querySelector('.ql-editor') as HTMLElement;
-  if (editorElement) {
-    editorElement.style.overflowY = 'auto';
-    editorElement.style.pointerEvents = 'auto';
-  }
-
-  // 如果输入框有焦点，先让它失去焦点
-  const continueInput = document.querySelector('.continue-input') as HTMLInputElement;
-  if (document.activeElement === continueInput) {
-    continueInput.blur();
-  }
-
-  // 等待一小段时间确保状态更新
-  await new Promise(resolve => setTimeout(resolve, 100));
-
   const editor = quillEditor.value.getQuill();
-  
-  // 使用保存的选区状态
-  if (savedSelection.value) {
-    editor.setSelection(savedSelection.value.index, savedSelection.value.length);
-    
-    // 更新光标图标位置
-    const bounds = editor.getBounds(savedSelection.value.index, 0);
-    const editorRect = editor.container.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  await aiTextContinueController.handleAIContinue(editor, props.currentChapter, props.currentBook);
+}
 
-    continueCursorStyle.value = {
-      top: `${editorRect.top + bounds.top + scrollTop}px`,
-      left: `${editorRect.left + bounds.left + scrollLeft}px`
-    };
-    showContinueCursor.value = true;
-  } else {
-    // 如果没有保存的选区，使用当前选区
-    const selection = editor.getSelection();
-    
-    if (selection) {
-      // 更新光标图标位置
-      const bounds = editor.getBounds(selection.index, 0);
-      const editorRect = editor.container.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+// 使用控制器的输入框焦点方法
+const handleContinueInputFocus = () => {
+  const editor = quillEditor.value.getQuill();
+  aiTextContinueController.handleContinueInputFocus(editor);
+}
 
-      continueCursorStyle.value = {
-        top: `${editorRect.top + bounds.top + scrollTop}px`,
-        left: `${editorRect.left + bounds.left + scrollLeft}px`
-      };
-      showContinueCursor.value = true;
-    } else {
-      // 如果没有选区，使用当前光标位置
-      editor.setSelection(editor.getLength(), 0);
-    }
-  }
-
-  // 保存当前光标位置
-  const currentPosition = editor.getSelection()?.index || editor.getLength();
-
-  // 显示续写位置选择对话框
-  try {
-    const result = await ElMessageBox({
-      title: '续写位置',
-      message: '请选择续写位置',
-      showCancelButton: true,
-      confirmButtonText: '当前位置',
-      cancelButtonText: '章节末尾',
-      type: 'info',
-      center: true,
-      customClass: 'continue-position-dialog',
-      showClose: true,
-      closeOnClickModal: false,
-      closeOnPressEscape: true,
-      distinguishCancelAndClose: true
-    }).catch((action) => {
-      return action;
-    });
-
-    let currentContent = '';
-    let insertPosition = 0;
-
-
-    // 根据返回值判断用户的选择
-    if (result === 'confirm') {
-      // 从当前位置续写
-      currentContent = editor.getText(0, currentPosition);
-      insertPosition = currentPosition;
-      // 保持在当前位置，不滚动
-      editor.setSelection(currentPosition, 0);
-      // 隐藏光标图标
-      showContinueCursor.value = false;
-    } else if (result === 'cancel') {
-      // 从章节末尾续写
-      currentContent = editor.getText();
-      insertPosition = editor.getLength();
-      // 滚动到章节末尾
-      editor.setSelection(insertPosition, 0);
-      editor.scrollIntoView();
-      // 隐藏光标图标
-      showContinueCursor.value = false;
-    } else if (result === 'close') {
-      // 用户关闭对话框
-      showContinueCursor.value = false;
-      return;
-    } else {
-      showContinueCursor.value = false;
-      return;
-    }
-
-    // 清除保存的选区状态
-    savedSelection.value = null;
-
-    const aiConfig = await AIConfigService.getCurrentProviderConfig();
-    const aiService = new AIService(aiConfig);
-
-    try {
-      const prompt = await replaceContinuePromptVariables(
-        props.currentBook,
-        props.currentChapter,
-        currentContent,
-        continuePrompt.value
-      );
-
-      let generatedText = '';
-      isGenerating.value = true;
-
-      // 直接保存生成任务的引用
-      generationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
-        if (error) {
-          ElMessage.error(`AI续写失败：${error}`);
-          isGenerating.value = false;
-          generationTask.value = null;
-          return;
-        }
-        if (complete) {
-          isGenerating.value = false;
-          generationTask.value = null;
-          if (props.currentChapter?.id) {
-            saveChapterContent(props.currentChapter.id, content.value);
-          }
-        }
-        generatedText += text;
-        if (!complete) {
-          // 在指定位置插入内容
-          const delta = new Delta()
-            .retain(insertPosition)
-            .insert(text);
-          editor.updateContents(delta, 'user');
-          
-          // 更新插入位置，以便下一次插入
-          insertPosition += text.length;
-        }
-      });
-
-    } catch (error) {
-      console.error('AI续写失败:', error);
-      if (error instanceof Error) {
-        ElMessage.error(`AI续写失败：${error.message}`);
-      } else {
-        ElMessage.error('AI续写失败，请检查网络连接和API配置');
-      }
-      isGenerating.value = false;
-      generationTask.value = null;
-    }
-  } catch (error) {
-    // 用户关闭对话框
-    return;
-  }
-};
+// 使用控制器的输入框失焦方法
+const handleContinueInputBlur = () => {
+  aiTextContinueController.handleContinueInputBlur();
+}
 
 const handleSelectionChange = (range: any, oldRange: any, source: string) => {
   // 如果点击在工具栏或输入框外，且当前有高亮状态，则移除高亮
@@ -938,45 +779,6 @@ const handleSelectionChange = (range: any, oldRange: any, source: string) => {
       rewriteContent.value = '';
       selectedTextRange.value = null;
     }
-  }
-};
-
-const handleContinueInputFocus = () => {
-  const editor = quillEditor.value.getQuill();
-  const selection = editor.getSelection();
-  
-  
-  // 保存选区状态
-  if (selection) {
-    savedSelection.value = { index: selection.index, length: selection.length };
-    const bounds = editor.getBounds(selection.index, 0);
-    const editorRect = editor.container.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-    continueCursorStyle.value = {
-      top: `${editorRect.top + bounds.top + scrollTop}px`,
-      left: `${editorRect.left + bounds.left + scrollLeft}px`
-    };
-    showContinueCursor.value = true;
-  }
-
-  // 保持滚动条可见但禁用滚动功能
-  const editorElement = document.querySelector('.ql-editor') as HTMLElement;
-  if (editorElement) {
-    editorElement.style.overflowY = 'scroll';
-    editorElement.style.pointerEvents = 'none';
-  }
-};
-
-const handleContinueInputBlur = () => {
-  showContinueCursor.value = false;
-  
-  // 恢复编辑器滚动
-  const editorElement = document.querySelector('.ql-editor') as HTMLElement;
-  if (editorElement) {
-    editorElement.style.overflowY = 'auto';
-    editorElement.style.pointerEvents = 'auto';
   }
 };
 </script>
