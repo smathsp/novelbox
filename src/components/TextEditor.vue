@@ -61,11 +61,12 @@ import OutlineDetail from './OutlineDetail.vue'
 import AIService from '../services/aiService'
 import { ElMessage } from 'element-plus'
 import Delta from 'quill-delta';
-import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables, replaceChapterPromptVariables } from '../services/promptVariableService'
+import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables } from '../services/promptVariableService'
 import { type Book, type Chapter } from '../services/bookConfigService'
 import { AIConfigService } from '../services/aiConfigService'
 import Proofreader from './Proofreader.vue'
 import AITextContinueController from '../controllers/AITextContinueController'
+import AIChapterGenerateController from '../controllers/AIChapterGenerateController'
 
 
 const content = ref('')
@@ -77,6 +78,13 @@ const rewriteContent = ref('')
 
 // AI续写控制器
 const aiTextContinueController = new AITextContinueController({
+  onContentSave: (chapterId, content) => {
+    saveChapterContent(chapterId, content);
+  }
+});
+
+// AI生成章节控制器
+const aiChapterGenerateController = new AIChapterGenerateController({
   onContentSave: (chapterId, content) => {
     saveChapterContent(chapterId, content);
   }
@@ -97,19 +105,9 @@ const calculateWordCount = () => {
   }
 }
 
-// AI生成相关状态
-const isAIGenerating = ref(false)
-const aiGenerationTask = ref<{ cancel?: () => void; error?: string; text?: string } | null>(null)
-
 // 初始化AI生成按钮文本
 const initAIGenerateButton = () => {
-  const button = document.querySelector('.ql-ai-generate')
-  if (button) {
-    button.setAttribute('data-content', 'AI生成')
-  } else {
-    // 如果按钮未找到，延迟100ms后重试
-    setTimeout(initAIGenerateButton, 100)
-  }
+  aiChapterGenerateController.initGenerateButton();
 }
 
 const expandSelectedText = async () => {
@@ -481,62 +479,8 @@ const editorOptions = {
           }
         },
         'ai-generate': async function () {
-          const button = document.querySelector('.ql-ai-generate');
-          if (isAIGenerating.value) {
-            aiGenerationTask.value?.cancel?.();
-            isAIGenerating.value = false;
-            button?.setAttribute('data-content', 'AI生成');
-            return;
-          }
-          button?.setAttribute('data-content', '停止生成');
-
-          if (!props.currentChapter?.id) return;
-
-          if (!props.currentBook) {
-            ElMessage.error('无法获取当前书籍信息');
-            return;
-          }
-          const currentBook = props.currentBook;
-
-          isAIGenerating.value = true;
-
-          const aiConfig = await AIConfigService.getCurrentProviderConfig();
-          const aiService = new AIService(aiConfig);
-
-
-          try {
-            const prompt = await replaceChapterPromptVariables(currentBook, props.currentChapter);
-
-            let generatedText = '';
-            const editor = quillEditor.value.getQuill();
-
-            aiGenerationTask.value = await aiService.generateText(prompt, (text: string, error?: string, complete?: boolean) => {
-              if (error) {
-                ElMessage.error(`AI生成失败：${error}`);
-                isAIGenerating.value = false;
-                aiGenerationTask.value = null;
-                initAIGenerateButton();
-                return;
-              }
-              if (complete) {
-                isAIGenerating.value = false;
-                aiGenerationTask.value = null;
-                ElMessage.success('AI生成完成');
-                if (props.currentChapter?.id) {
-                  saveChapterContent(props.currentChapter.id, content.value);
-                }
-                initAIGenerateButton();
-              }
-              generatedText += text;
-              if (!complete) {
-                editor.updateContents(new Delta().retain(editor.getLength() - 1).insert(text), 'user');
-              }
-            });
-
-          } catch (error) {
-            ElMessage.error(error.message);
-            return;
-          }
+          const editor = quillEditor.value.getQuill();
+          await aiChapterGenerateController.handleAIGenerate(editor, props.currentChapter, props.currentBook);
         },
         undo: function () {
           quillEditor.value.getQuill().history.undo();
