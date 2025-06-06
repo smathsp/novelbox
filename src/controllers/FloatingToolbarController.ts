@@ -283,6 +283,14 @@ export default class FloatingToolbarController {
           return;
         }
         const text = response.text;
+        
+        // 先清除高亮效果
+        quill.formatText(tempIndex, tempLength, {
+          'background': false,
+          'color': false,
+        });
+        
+        // 然后更新内容
         quill.updateContents(
           new Delta()
             .retain(tempIndex)
@@ -290,11 +298,13 @@ export default class FloatingToolbarController {
             .insert(text),
           'user'
         );
+        
         // 在内容更新后重新设置选中状态
         setTimeout(() => {
           quill.setSelection(tempIndex, text.length, 'user');
           this.cleanupRewriteState(quill);
         }, 0);
+        
         if (currentChapter?.id) {
           this.saveContentCallback(currentChapter.id, quill.root.innerHTML);
         }
