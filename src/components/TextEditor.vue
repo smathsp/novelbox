@@ -38,12 +38,12 @@
         </button>
       </div>
       <!-- Floating Toolbar -->
-      <div v-if="showFloatingToolbar" class="floating-toolbar" :style="toolbarStyle">
-        <button @click="expandSelectedText">扩写</button>
-        <button @click="condenseSelectedText">缩写</button>
-        <input v-if="showRewriteInput" v-model="rewriteContent" placeholder="输入改写内容..." class="rewrite-input"
+      <div v-if="floatingToolbarController.showFloatingToolbarValue" class="floating-toolbar" :style="floatingToolbarController.toolbarStyleValue">
+        <button @click="handleExpandSelectedText">扩写</button>
+        <button @click="handleCondenseSelectedText">缩写</button>
+        <input v-if="floatingToolbarController.showRewriteInputValue" v-model="floatingToolbarController.rewriteContentValue" placeholder="输入改写内容..." class="rewrite-input"
           @focus="handleRewriteInputFocus" />
-        <button @click="rewriteSelectedText" class="rewrite-btn">改写</button>
+        <button @click="handleRewriteSelectedText" class="rewrite-btn">改写</button>
       </div>
       <div class="status-bar" v-if="currentChapter && currentChapter.type === 'chapter'">
         <span>本章字数：{{ chapterWordCount }}字</span>
@@ -58,23 +58,16 @@ import { QuillEditor } from '@vueup/vue-quill'
 import Searcher from './Searcher.vue'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import OutlineDetail from './OutlineDetail.vue'
-import AIService from '../services/aiService'
 import { ElMessage } from 'element-plus'
 import Delta from 'quill-delta';
-import { replaceExpandPromptVariables, replaceRewritePromptVariables, replaceAbbreviatePromptVariables } from '../services/promptVariableService'
 import { type Book, type Chapter } from '../services/bookConfigService'
-import { AIConfigService } from '../services/aiConfigService'
 import Proofreader from './Proofreader.vue'
 import AITextContinueController from '../controllers/AITextContinueController'
 import AIChapterGenerateController from '../controllers/AIChapterGenerateController'
+import FloatingToolbarController from '../controllers/FloatingToolbarController'
 
 
 const content = ref('')
-const showFloatingToolbar = ref(false)
-const toolbarStyle = ref({ top: '0px', left: '0px' })
-const selectedTextRange = ref<any>(null)
-const showRewriteInput = ref(false)
-const rewriteContent = ref('')
 
 // AI续写控制器
 const aiTextContinueController = new AITextContinueController({
@@ -85,6 +78,13 @@ const aiTextContinueController = new AITextContinueController({
 
 // AI生成章节控制器
 const aiChapterGenerateController = new AIChapterGenerateController({
+  onContentSave: (chapterId, content) => {
+    saveChapterContent(chapterId, content);
+  }
+});
+
+// 浮动工具栏控制器
+const floatingToolbarController = new FloatingToolbarController({
   onContentSave: (chapterId, content) => {
     saveChapterContent(chapterId, content);
   }
@@ -110,235 +110,28 @@ const initAIGenerateButton = () => {
   aiChapterGenerateController.initGenerateButton();
 }
 
-const expandSelectedText = async () => {
-  if (!selectedTextRange.value) return;
+// 处理扩写选中文本
+const handleExpandSelectedText = async () => {
   const editor = quillEditor.value.getQuill();
-  const selectedText = editor.getText(selectedTextRange.value.index, selectedTextRange.value.length);
-
-  if (!props.currentBook) {
-    ElMessage.error('无法获取当前书籍信息');
-    return;
-  }
-
-  // 获取当前章节的细纲
-  const findChapterDetail = (chapters: any[]): any => {
-    for (const ch of chapters) {
-      if (ch.id === props.currentChapter?.id) return ch;
-      if (ch.children) {
-        const found = findChapterDetail(ch.children);
-        if (found) return found;
-      }
-    }
-  };
-
-  const chapter = findChapterDetail(props.currentBook.content || []);
-  if (!chapter?.detailOutline?.detailContent) {
-    ElMessage.error('请先编写本章细纲');
-    return;
-  }
-
-  const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService(aiConfig);
-
-  const prompt = await replaceExpandPromptVariables(
-    props.currentBook,
-    chapter,
-    editor.getText(),
-    selectedText
-  );
-
-  try {
-    const response = await aiService.generateText(prompt);
-    if (response.error) {
-      ElMessage.error(`AI扩写失败：${response.error}`);
-      return;
-    }
-    const text = response.text;
-    editor.updateContents(
-      new Delta()
-        .retain(selectedTextRange.value.index)
-        .delete(selectedTextRange.value.length)
-        .insert(text),
-      'user'
-    );
-    if (props.currentChapter?.id) {
-      saveChapterContent(props.currentChapter.id, content.value);
-    }
-  } catch (error) {
-    console.error('AI扩写失败:', error);
-    ElMessage.error('AI扩写失败，请检查网络连接和API配置');
-  }
+  await floatingToolbarController.expandSelectedText(editor, props.currentChapter, props.currentBook);
 };
 
-// 添加清理状态的函数
-const cleanupRewriteState = () => {
-  const toolbar = document.querySelector('.floating-toolbar');
-  toolbar?.classList.remove('show-rewrite');
-  
-  // 移除高亮效果
-  if (selectedTextRange.value) {
-    const editor = quillEditor.value?.getQuill();
-    if (editor) {
-      editor.formatText(selectedTextRange.value.index, selectedTextRange.value.length, {
-        'background': false,
-        'color': false,
-      });
-      // 保持选中状态
-      editor.setSelection(selectedTextRange.value.index, selectedTextRange.value.length, 'user');
-    }
-  }
-  
-  rewriteContent.value = '';
-  showRewriteInput.value = false;
+// 处理缩写选中文本
+const handleCondenseSelectedText = async () => {
+  const editor = quillEditor.value.getQuill();
+  await floatingToolbarController.condenseSelectedText(editor, props.currentChapter, props.currentBook);
 };
 
+// 处理改写输入框获得焦点
 const handleRewriteInputFocus = () => {
-  if (!selectedTextRange.value) return;
   const editor = quillEditor.value.getQuill();
-
-  editor.formatText(selectedTextRange.value.index, selectedTextRange.value.length, {
-    'background': 'rgba(51, 103, 209)',
-    'color': '#fff',
-  });
-
-  nextTick(() => {
-    const input = document.querySelector('.rewrite-input') as HTMLInputElement;
-    if (input) {
-      input.focus();
-    }
-  });
+  floatingToolbarController.handleRewriteInputFocus(editor);
 };
 
-const rewriteSelectedText = async () => {
+// 处理改写选中文本
+const handleRewriteSelectedText = async () => {
   const editor = quillEditor.value.getQuill();
-  const { index: tempIndex, length: tempLength } = selectedTextRange.value;
-
-  if (rewriteContent.value) {
-    if (!props.currentBook) {
-      ElMessage.error('无法获取当前书籍信息');
-      return;
-    }
-    const currentBook = props.currentBook;
-
-    const aiConfig = await AIConfigService.getCurrentProviderConfig();
-    const aiService = new AIService(aiConfig);
-
-    const selectedText = editor.getText(tempIndex, tempLength);
-    const prompt = await replaceRewritePromptVariables(
-      currentBook,
-      props.currentChapter,
-      editor.getText(),
-      selectedText,
-      rewriteContent.value
-    );
-
-    try {
-      const response = await aiService.generateText(prompt);
-      if (response.error) {
-        ElMessage.error(`AI改写失败：${response.error}`);
-        return;
-      }
-      const text = response.text;
-      editor.updateContents(
-        new Delta()
-          .retain(tempIndex)
-          .delete(tempLength)
-          .insert(text),
-        'user'
-      );
-      // 在内容更新后重新设置选中状态
-      nextTick(() => {
-        editor.setSelection(tempIndex, text.length, 'user');
-        cleanupRewriteState();
-      });
-      if (props.currentChapter?.id) {
-        saveChapterContent(props.currentChapter.id, content.value);
-      }
-    } catch (error) {
-      console.error('AI改写失败:', error);
-      ElMessage.error('AI改写失败，请检查网络连接和API配置');
-    }
-  } else {
-    showRewriteInput.value = !showRewriteInput.value
-    if (showRewriteInput.value) {
-      const selection = editor.getSelection()
-      if (selection) {
-        const toolbar = document.querySelector('.floating-toolbar');
-        if (toolbar) {
-          // 获取工具栏和编辑器的位置信息
-          const toolbarRect = toolbar.getBoundingClientRect();
-          const editorRect = editor.container.getBoundingClientRect();
-          const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-          
-          // 计算展开后的工具栏宽度（包含输入框）
-          const expandedToolbarWidth = 430; // 展开后的工具栏宽度
-          const rightBoundary = editorRect.right + scrollLeft;
-          const currentLeft = parseFloat(toolbarStyle.value.left);
-          
-          // 如果展开后会超出右边界，则向左调整位置
-          if (currentLeft + expandedToolbarWidth > rightBoundary) {
-            const newLeft = rightBoundary - expandedToolbarWidth - 10; // 10px的边距
-            // 使用 requestAnimationFrame 确保在下一帧渲染前调整位置
-            requestAnimationFrame(() => {
-              toolbarStyle.value.left = `${newLeft}px`;
-              // 在位置调整后再添加展开类
-              requestAnimationFrame(() => {
-                toolbar.classList.add('show-rewrite');
-              });
-            });
-          } else {
-            toolbar.classList.add('show-rewrite');
-          }
-        }
-      }
-    } else {
-      cleanupRewriteState();
-    }
-  }
-}
-
-const condenseSelectedText = async () => {
-  if (!selectedTextRange.value) return;
-  const editor = quillEditor.value.getQuill();
-  const selectedText = editor.getText(selectedTextRange.value.index, selectedTextRange.value.length);
-
-  if (!props.currentBook) {
-    ElMessage.error('无法获取当前书籍信息');
-    return;
-  }
-  const currentBook = props.currentBook;
-
-  const aiConfig = await AIConfigService.getCurrentProviderConfig();
-  const aiService = new AIService(aiConfig);
-
-  try {
-    const prompt = await replaceAbbreviatePromptVariables(
-      currentBook,
-      props.currentChapter,
-      editor.getText(),
-      selectedText
-    );
-
-    const response = await aiService.generateText(prompt);
-    if (response.error) {
-      ElMessage.error(`AI缩写失败：${response.error}`);
-      return;
-    }
-    const text = response.text;
-    editor.updateContents(
-      new Delta()
-        .retain(selectedTextRange.value.index)
-        .delete(selectedTextRange.value.length)
-        .insert(text),
-      'user'
-    );
-    if (props.currentChapter?.id) {
-      saveChapterContent(props.currentChapter.id, content.value);
-    }
-  } catch (error) {
-    console.error('AI缩写失败:', error);
-    ElMessage.error('AI缩写失败，请检查网络连接和API配置');
-  }
+  await floatingToolbarController.rewriteSelectedText(editor, props.currentChapter, props.currentBook);
 };
 
 onMounted(() => {
@@ -672,58 +465,10 @@ const handleContinueInputBlur = () => {
   aiTextContinueController.handleContinueInputBlur();
 }
 
+// 处理选择变化，使用浮动工具栏控制器
 const handleSelectionChange = (range: any, oldRange: any, source: string) => {
-  // 如果点击在工具栏或输入框外，且当前有高亮状态，则移除高亮
-  if (showRewriteInput.value) {
-    const toolbar = document.querySelector('.floating-toolbar');
-    const rewriteInput = document.querySelector('.rewrite-input');
-    if ((!toolbar || !toolbar.contains(document.activeElement)) && 
-        (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
-      cleanupRewriteState();
-    }
-  }
-
-  if (range && range.length > 0 && source === 'user') {
-    const editor = quillEditor.value.getQuill();
-    const bounds = editor.getBounds(range.index, range.length);
-    const editorRect = editor.container.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-    // 计算工具栏的初始位置
-    const toolbarWidth = 200; // 工具栏的大致宽度
-    const initialLeft = editorRect.left + bounds.left + scrollLeft + (bounds.width / 2) - (toolbarWidth / 2);
-    
-    // 检查工具栏是否会超出编辑器右边界
-    const rightBoundary = editorRect.right + scrollLeft;
-    const adjustedLeft = Math.min(initialLeft, rightBoundary - toolbarWidth - 10); // 10px的边距
-
-    // 计算工具栏的垂直位置，考虑编辑器滚动
-    const toolbarTop = editorRect.top + bounds.top + scrollTop - 40;
-
-    // 确保工具栏不会超出编辑器顶部和底部
-    const minTop = editorRect.top + scrollTop;
-    const maxTop = editorRect.bottom + scrollTop - 40;
-    const adjustedTop = Math.max(minTop, Math.min(toolbarTop, maxTop));
-
-    toolbarStyle.value = {
-      top: `${adjustedTop}px`,
-      left: `${adjustedLeft}px`
-    };
-    selectedTextRange.value = range;
-    showFloatingToolbar.value = true;
-  } else {
-    const toolbar = document.querySelector('.floating-toolbar');
-    const rewriteInput = document.querySelector('.rewrite-input');
-
-    if ((!toolbar || !toolbar.contains(document.activeElement)) && 
-        (!rewriteInput || !rewriteInput.contains(document.activeElement))) {
-      showFloatingToolbar.value = false;
-      showRewriteInput.value = false;
-      rewriteContent.value = '';
-      selectedTextRange.value = null;
-    }
-  }
+  const editor = quillEditor.value.getQuill();
+  floatingToolbarController.handleSelectionChange(range, oldRange, source, editor);
 };
 </script>
 
