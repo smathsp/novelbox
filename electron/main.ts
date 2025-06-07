@@ -278,6 +278,8 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
 // 写入文件
 ipcMain.handle('write-file', async (_event, { filePath, content }: { filePath: string; content: string }) => {
   try {
+    // 确保目录存在
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, content, 'utf-8');
     return { success: true };
   } catch (error: any) {
@@ -295,6 +297,8 @@ ipcMain.handle('write-file', async (_event, { filePath, content }: { filePath: s
 // 写入二进制文件
 ipcMain.handle('write-blob-file', async (_event, { filePath, buffer }: { filePath: string; buffer: Buffer }) => {
   try {
+    // 确保目录存在
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buffer);
     return { success: true };
   } catch (error: any) {
