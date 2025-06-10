@@ -238,3 +238,24 @@ export const replaceProofreadPromptVariables = async (content: string): Promise<
     const promptConfig = DefaultPrompts.defaultProofreadPrompt;
     return promptConfig.replace('${content}', content);
 }
+
+/**
+ * 替换首章生成提示词中的变量
+ * @param book 当前书籍
+ * @param currentChapter 当前章节
+ * @returns 替换后的提示词
+ */
+export const replaceFirstChapterPromptVariables = async (book: Book, currentChapter: Chapter): Promise<string> => {
+    const promptConfig = await PromptConfigService.getPromptByName('firstChapter') || DefaultPrompts.defaultFirstChapterPrompt;
+    
+    if (!currentChapter?.detailOutline?.detailContent) {
+        throw new Error('请先编写本章细纲');
+    }
+    
+    return promptConfig
+        .replace('${title}', book.title)
+        .replace('${description}', book.description || '')
+        .replace('${settings}', book.setting || '')
+        .replace('${outline}', book.plot || '')
+        .replace('${chapterOutline}', currentChapter.detailOutline.detailContent || '');
+}

@@ -1,8 +1,8 @@
 import { ref } from 'vue';
 import Delta from 'quill-delta';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import AIService from '../services/aiService';
-import { replaceChapterPromptVariables } from '../services/promptVariableService';
+import { replaceChapterPromptVariables, replaceFirstChapterPromptVariables } from '../services/promptVariableService';
 import type { Book, Chapter } from '../services/bookConfigService';
 import { AIConfigService } from '../services/aiConfigService';
 
@@ -68,8 +68,34 @@ export class AIChapterGenerateController {
       const aiConfig = await AIConfigService.getCurrentProviderConfig();
       const aiService = new AIService(aiConfig);
 
-      // 生成提示词
-      const prompt = await replaceChapterPromptVariables(currentBook, currentChapter);
+      // 检查是否为第1章
+      const chapterNumber = parseInt(currentChapter.detailOutline?.chapterNumber || '0');
+      let prompt = '';
+      
+      if (chapterNumber === 1) {
+        // 如果是第1章，询问用户是否使用首章提示词
+        try {
+          const useFirstChapterPrompt = await ElMessageBox.confirm('检测到当前是第1章，是否使用小说首章提示词来生成章节？', '提示', {
+            confirmButtonText: '是',
+            cancelButtonText: '否',
+            type: 'info'
+          }).then(() => true).catch(() => false);
+          
+          if (useFirstChapterPrompt) {
+            // 用户选择使用首章提示词
+            prompt = await replaceFirstChapterPromptVariables(currentBook, currentChapter);
+          } else {
+            // 用户选择不使用首章提示词，使用普通章节提示词
+            prompt = await replaceChapterPromptVariables(currentBook, currentChapter);
+          }
+        } catch (error) {
+          // 如果对话框出错，默认使用普通章节提示词
+          prompt = await replaceChapterPromptVariables(currentBook, currentChapter);
+        }
+      } else {
+        // 非第1章，使用普通章节提示词
+        prompt = await replaceChapterPromptVariables(currentBook, currentChapter);
+      }
 
       let generatedText = '';
 

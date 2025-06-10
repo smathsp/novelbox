@@ -146,6 +146,33 @@ export const defaultChapterOutlinePrompt = '根据以下内容，生成本章节
 
 export const defaultChapterPrompt = '请根据以下信息生成一个完整的小说章节，要求字数在2500字以上，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成小说章节不生成任何其他信息。\n小说名:${title}\n,简介:${description}\n,设定:${settings}\n,大纲:${outline}\n,前文:${previous}\n本章细纲:${chapterOutline}'
 
+export const defaultFirstChapterPrompt = `你是一个专业的小说作家，请根据以下信息创作一个引人入胜的小说首章，字数在2500字左右。
+
+首先，请分析小说的类型/题材（如都市、玄幻、科幻、悬疑等），然后用一句话总结开篇应该具备的特征（如穿越、重生、凡人、金手指等等），并明确目标受众群体。
+
+在创作首章时，请遵循以下要求：
+
+1. 钩住读者：
+
+2. 引入主角/核心视角人物：
+   - 注意建立情感连接，让读者对主角产生好奇、同情或钦佩
+   - 简洁呈现关键信息（名字、核心特质、当前状态），避免长篇背景介绍
+
+3. 设定故事世界/情境：
+   - 信息量控制：只展现最关键、最相关的元素，避免信息轰炸
+
+4. 建立基调/氛围：
+
+5. 暗示核心冲突或主题：
+
+请不要使用任何markdown格式，不要使用除中文外的其他语言。本章细纲只作为剧情参考，如果细纲和首章规则有冲突，以首章规则为准。
+
+小说名: \${title}
+简介: \${description}
+设定: \${settings}
+大纲: \${outline}
+本章细纲: \${chapterOutline}`
+
 export const defaultContinuePrompt = '请根据以下信息续写小说内容，要求字数在400字左右，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成小说内容不生成任何其他信息。\n小说名:${title}\n简介:${description}\n设定:${settings}\n大纲:${outline}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n续写指导:${content}'
 
 export const defaultExpandPrompt = '请根据以下内容扩写小说段落，只对需要扩写的内容进行扩写，保持原有风格和情节连贯性，不要使用任何markdown格式，不要使用除中文外的其他语言。确保只生成段落不生成任何其他信息。\n小说名:${title}\n设定:${settings}\n本章细纲:${chapterOutline}\n已有内容:${chapter}\n需要扩写的段落:${content}'

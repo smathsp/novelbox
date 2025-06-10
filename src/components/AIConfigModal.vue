@@ -155,6 +155,14 @@
         </div>
       </div>
       <div class="form-group">
+        <label>生成小说首章提示词</label>
+        <div class="prompt-input-group">
+          <textarea v-model="tempPromptConfig.firstChapter"
+            @focus="(e: FocusEvent) => lastFocusedTextarea = e.target as HTMLTextAreaElement"
+            class="form-textarea prompt-textarea" ref="firstChapterTextarea"></textarea>
+        </div>
+      </div>
+      <div class="form-group">
         <label>续写提示词</label>
         <div class="prompt-input-group">
           <textarea v-model="tempPromptConfig.continue"
@@ -216,7 +224,7 @@
 <script setup lang="ts">
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt, AI_PROVIDERS, type AIProvider, type AIModel } from '../constants'
+import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt, defaultFirstChapterPrompt, AI_PROVIDERS, type AIProvider, type AIModel } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
 import { AIConfigService } from '../services/aiConfigService'
 
@@ -277,6 +285,7 @@ const promptConfig = reactive({
   outline: defaultOutlinePrompt,
   chapterOutline: defaultChapterOutlinePrompt,
   chapter: defaultChapterPrompt,
+  firstChapter: defaultFirstChapterPrompt,
   continue: defaultContinuePrompt,
   expand: defaultExpandPrompt,
   abbreviate: defaultAbbreviatePrompt,
@@ -291,6 +300,7 @@ const tempPromptConfig = reactive({
   outline: promptConfig.outline,
   chapterOutline: promptConfig.chapterOutline,
   chapter: promptConfig.chapter,
+  firstChapter: promptConfig.firstChapter,
   continue: promptConfig.continue,
   expand: promptConfig.expand,
   abbreviate: promptConfig.abbreviate,
@@ -320,6 +330,7 @@ const continueTextarea = ref<HTMLTextAreaElement>()
 const expandTextarea = ref<HTMLTextAreaElement>()
 const abbreviateTextarea = ref<HTMLTextAreaElement>()
 const updateSettingsTextarea = ref<HTMLTextAreaElement>()
+const firstChapterTextarea = ref<HTMLTextAreaElement>()
 
 const showAdvancedSettings = ref(false)
 
@@ -626,6 +637,7 @@ const resetToDefault = () => {
     tempPromptConfig.outline = defaultOutlinePrompt
     tempPromptConfig.chapterOutline = defaultChapterOutlinePrompt
     tempPromptConfig.chapter = defaultChapterPrompt
+    tempPromptConfig.firstChapter = defaultFirstChapterPrompt
     tempPromptConfig.continue = defaultContinuePrompt
     tempPromptConfig.expand = defaultExpandPrompt
     tempPromptConfig.abbreviate = defaultAbbreviatePrompt
@@ -680,6 +692,8 @@ const insertVariable = (type: string, event: MouseEvent) => {
     tempPromptConfig.chapterOutline = newValue
   } else if (textarea === chapterTextarea.value) {
     tempPromptConfig.chapter = newValue
+  } else if (textarea === firstChapterTextarea.value) {
+    tempPromptConfig.firstChapter = newValue
   } else if (textarea === continueTextarea.value) {
     tempPromptConfig.continue = newValue
   } else if (textarea === expandTextarea.value) {
