@@ -428,7 +428,9 @@ const loadCurrentProviderConfig = async () => {
 }
 
 const saveAIConfig = async () => {
-  if (!aiConfig.apiKey.trim()) {
+  const isCustomProvider = aiConfig.customProviders?.some(p => p.name === aiConfig.provider);
+  
+  if (!isCustomProvider && !aiConfig.apiKey.trim()) {
     ElMessage.error('请输入API密钥')
     return
   }

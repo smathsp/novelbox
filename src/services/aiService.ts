@@ -290,10 +290,13 @@ class AIService {
     
     const baseURL = `${domain}${path}`;
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
     };
+    
+    if (this.config.apiKey) {
+      headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+    }
 
     if (stream) {
       try {
