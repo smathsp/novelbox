@@ -67,16 +67,28 @@ class AIService {
     }
   }
 
+  // 获取当前模型的配置
+  private getModelConfig() {
+    const modelConfig = this.config.modelConfigs?.[this.config.model];
+    return {
+      temperature: modelConfig?.temperature ?? 0.7,
+      maxTokens: modelConfig?.maxTokens ?? 25000,
+      topP: modelConfig?.topP ?? 0.95
+    };
+  }
+
   private async generateWithOpenAI(prompt: string, stream?: StreamCallback, signal?: AbortSignal): Promise<string> {
     if (!this.openaiClient) throw new Error('AI client not initialized');
+    
+    const { temperature, maxTokens, topP } = this.getModelConfig();
 
     if (stream) {
       const response = await this.openaiClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 25000,
-        top_p: this.config.topP ?? 0.95,
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP,
         stream: true
       }, { signal: signal });
 
@@ -105,9 +117,9 @@ class AIService {
       const response = await this.openaiClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 25000,
-        top_p: this.config.topP ?? 0.95
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP
       });
       return response.choices[0]?.message?.content || '';
     }
@@ -116,13 +128,15 @@ class AIService {
   private async generateWithAnthropic(prompt: string, stream?: StreamCallback, signal?: AbortSignal): Promise<string> {
     if (!this.anthropicClient) throw new Error('Anthropic client not initialized');
 
+    const { temperature, maxTokens, topP } = this.getModelConfig();
+
     if (stream) {
       const response = this.anthropicClient.messages.stream({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 8192,
-        top_p: this.config.topP ?? 0.95
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP
       }, { signal: signal });
 
       let fullText = '';
@@ -154,9 +168,9 @@ class AIService {
       const response = await this.anthropicClient.messages.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 8192,
-        top_p: this.config.topP ?? 0.95
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP
       });
       return response.content[0]?.type === 'text' ? response.content[0].text : '';
     }
@@ -165,12 +179,14 @@ class AIService {
   private async generateWithGemini(prompt: string, stream?: StreamCallback, signal?: AbortSignal): Promise<string> {
     if (!this.geminiClient) throw new Error('Gemini client not initialized');
 
+    const { temperature, maxTokens, topP } = this.getModelConfig();
+
     const model = this.geminiClient.getGenerativeModel({ 
       model: this.config.model,
       generationConfig: {
-        temperature: this.config.temperature ?? 0.7,
-        maxOutputTokens: this.config.maxTokens ?? 8192,
-        topP: this.config.topP ?? 0.95
+        temperature: temperature,
+        maxOutputTokens: maxTokens,
+        topP: topP
       }
     });
 
@@ -209,13 +225,15 @@ class AIService {
   private async generateWithDeepseek(prompt: string, stream?: StreamCallback, signal?: AbortSignal): Promise<string> {
     if (!this.deepseekClient) throw new Error('AI client not initialized');
 
+    const { temperature, maxTokens, topP } = this.getModelConfig();
+
     if (stream) {
       const response = await this.deepseekClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 25000,
-        top_p: this.config.topP ?? 0.95,
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP,
         stream: true
       }, { signal: signal });
 
@@ -244,9 +262,9 @@ class AIService {
       const response = await this.deepseekClient.chat.completions.create({
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 25000,
-        top_p: this.config.topP ?? 0.95
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP
       });
       return response.choices[0]?.message?.content || '';
     }
@@ -257,6 +275,8 @@ class AIService {
     if (!customProvider) {
       throw new Error('自定义服务商配置未找到');
     }
+
+    const { temperature, maxTokens, topP } = this.getModelConfig();
 
     // 处理域名前缀
     const domain = customProvider.apiDomain.startsWith('http://') || customProvider.apiDomain.startsWith('https://')
@@ -283,9 +303,9 @@ class AIService {
           body: JSON.stringify({
             model: this.config.model,
             messages: [{ role: 'user', content: prompt }],
-            temperature: this.config.temperature ?? 0.7,
-            max_tokens: this.config.maxTokens ?? 25000,
-            top_p: this.config.topP ?? 0.95,
+            temperature: temperature,
+            max_tokens: maxTokens,
+            top_p: topP,
             stream: true
           }),
           signal
@@ -339,9 +359,9 @@ class AIService {
       const response = await axios.post(baseURL, {
         model: this.config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 25000,
-        top_p: this.config.topP ?? 0.95
+        temperature: temperature,
+        max_tokens: maxTokens,
+        top_p: topP
       }, {
         headers,
         signal

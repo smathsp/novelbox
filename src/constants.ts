@@ -4,13 +4,13 @@ export interface AIProvider {
   name: string
   models: AIModel[]
   defaultTemperature: number
-  defaultMaxTokens: number
   defaultTopP: number
 }
 
 export interface AIModel {
   id: string
   name: string
+  maxTokens?: number
 }
 
 export const AI_PROVIDERS: AIProvider[] = [
@@ -18,52 +18,48 @@ export const AI_PROVIDERS: AIProvider[] = [
     id: 'openai',
     name: 'OpenAI',
     models: [
-      { id: 'gpt-4.1', name: 'GPT-4.1' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-      { id: 'o3', name: 'O3' },
-      { id: 'o4-mini', name: 'O4-Mini' }
+      { id: 'gpt-4.1', name: 'GPT-4.1', maxTokens: 25000 },
+      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', maxTokens: 4096 },
+      { id: 'o3', name: 'O3', maxTokens: 25000 },
+      { id: 'o4-mini', name: 'O4-Mini', maxTokens: 25000 }
     ],
     defaultTemperature: 0.7,
-    defaultMaxTokens: 25000,
     defaultTopP: 0.95
   },
   {
     id: 'anthropic',
     name: 'Anthropic',
     models: [
-      { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku' },
-      { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet' },
-      { id: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet' },
-      { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
-      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' }
+      { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', maxTokens: 8192 },
+      { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', maxTokens: 8192 },
+      { id: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet', maxTokens: 25000 },
+      { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', maxTokens: 25000 },
+      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', maxTokens: 25000 }
     ],
     defaultTemperature: 0.7,
-    defaultMaxTokens: 8192,
     defaultTopP: 0.95
   },
   {
     id: 'gemini',
     name: 'Gemini',
     models: [
-      { id: 'gemini-2.0-flash', name: 'Gemini Flash' },
-      { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking' },
-      { id: 'gemini-2.5-pro-preview-06-05', name: 'Gemini 2.5 pro' },
-      { id: 'gemini-2.5-flash-preview-04-17-thinking', name: 'Gemini 2.5 Flash Thinking' },
-      { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash' }
+      { id: 'gemini-2.0-flash', name: 'Gemini Flash', maxTokens: 25000 },
+      { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini Flash Thinking', maxTokens: 25000 },
+      { id: 'gemini-2.5-pro-preview-06-05', name: 'Gemini 2.5 pro', maxTokens: 25000 },
+      { id: 'gemini-2.5-flash-preview-04-17-thinking', name: 'Gemini 2.5 Flash Thinking', maxTokens: 25000 },
+      { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', maxTokens: 25000 }
     ],
     defaultTemperature: 0.7,
-    defaultMaxTokens: 25000,
     defaultTopP: 0.95
   },
   {
     id: 'deepseek',
     name: 'Deepseek',
     models: [
-      { id: 'deepseek-chat', name: 'Deepseek V3' },
-      { id: 'deepseek-reasoner', name: 'Deepseek R1' }
+      { id: 'deepseek-chat', name: 'Deepseek V3', maxTokens: 8192 },
+      { id: 'deepseek-reasoner', name: 'Deepseek R1', maxTokens: 25000 }
     ],
     defaultTemperature: 0.7,
-    defaultMaxTokens: 25000,
     defaultTopP: 0.95
   }
 ]

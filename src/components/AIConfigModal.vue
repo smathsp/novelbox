@@ -226,7 +226,7 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { defaultBookNameAndDescPrompt, defaultSettingsPrompt, defaultOutlinePrompt, defaultChapterOutlinePrompt, defaultChapterPrompt, defaultContinuePrompt, defaultExpandPrompt, defaultAbbreviatePrompt, defaultRewriteAbbreviatePrompt, defaultUpdateSettingsPrompt, defaultFirstChapterPrompt, AI_PROVIDERS, type AIProvider, type AIModel } from '../constants'
 import { PromptConfigService } from '../services/promptConfigService'
-import { AIConfigService } from '../services/aiConfigService'
+import { AIConfigService, type CustomProvider } from '../services/aiConfigService'
 
 const props = defineProps<{
   showAIConfigModal: boolean
@@ -254,13 +254,7 @@ interface ProviderConfig {
   topP?: number
 }
 
-interface CustomProvider {
-  name: string
-  apiDomain: string
-  apiPath: string
-  model: string
-}
-
+// 使用已导入的CustomProvider类型，不再需要本地定义
 interface ModelOption {
   id: string
   name: string
@@ -275,7 +269,7 @@ const aiConfig = reactive<AIConfig>({
   proxyUrl: '',
   customProviders: [],
   temperature: AI_PROVIDERS.find(p => p.id === 'openai')?.defaultTemperature ?? 0.7,
-  maxTokens: AI_PROVIDERS.find(p => p.id === 'openai')?.defaultMaxTokens ?? 2000,
+  maxTokens: 2000,
   topP: AI_PROVIDERS.find(p => p.id === 'openai')?.defaultTopP ?? 0.95
 })
 
@@ -380,7 +374,6 @@ const loadAIConfig = async () => {
   }
 }
 
-
 // 加载当前选择的服务商配置
 const loadCurrentProviderConfig = async () => {
   try {
@@ -392,14 +385,42 @@ const loadCurrentProviderConfig = async () => {
     // 获取当前服务商的默认配置
     const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider)
     if (provider) {
-      aiConfig.temperature = providerConfig.temperature ?? provider.defaultTemperature
-      aiConfig.maxTokens = providerConfig.maxTokens ?? provider.defaultMaxTokens
-      aiConfig.topP = providerConfig.topP ?? provider.defaultTopP
+      // 查找当前选中的模型
+      const currentModel = provider.models.find(m => m.id === aiConfig.model)
+      
+      // 检查是否有针对当前模型的保存配置
+      const modelConfig = providerConfig.modelConfigs?.[aiConfig.model]
+      
+      // 设置temperature (优先级: 模型配置 > 默认值)
+      aiConfig.temperature = modelConfig?.temperature ?? provider.defaultTemperature
+      
+      // 设置maxTokens (优先级: 模型配置 > 模型默认值 > 全局默认值)
+      if (modelConfig?.maxTokens) {
+        // 1. 使用保存的模型特定配置
+        aiConfig.maxTokens = modelConfig.maxTokens
+      } else if (currentModel?.maxTokens) {
+        // 2. 使用模型的默认值
+        aiConfig.maxTokens = currentModel.maxTokens
+      } else {
+        // 3. 使用全局默认值
+        aiConfig.maxTokens = 2000
+      }
+      
+      // 设置topP (优先级: 模型配置 > 默认值)
+      aiConfig.topP = modelConfig?.topP ?? provider.defaultTopP
     } else {
       // 自定义服务商使用默认值
-      aiConfig.temperature = providerConfig.temperature ?? 0.7
-      aiConfig.maxTokens = providerConfig.maxTokens ?? 2000
-      aiConfig.topP = providerConfig.topP ?? 0.95
+      aiConfig.temperature = 0.7
+      aiConfig.maxTokens = 2000
+      aiConfig.topP = 0.95
+      
+      // 如果有模型配置，优先使用
+      const modelConfig = providerConfig.modelConfigs?.[aiConfig.model]
+      if (modelConfig) {
+        if (modelConfig.temperature !== undefined) aiConfig.temperature = modelConfig.temperature
+        if (modelConfig.maxTokens !== undefined) aiConfig.maxTokens = modelConfig.maxTokens
+        if (modelConfig.topP !== undefined) aiConfig.topP = modelConfig.topP
+      }
     }
   } catch (error) {
     console.error('加载服务商配置失败:', error)
@@ -413,29 +434,42 @@ const saveAIConfig = async () => {
   }
 
   try {
-    // 保存当前服务商的配置
-    const providerConfig: ProviderConfig = {
-      model: aiConfig.model,
-      apiKey: aiConfig.apiKey,
-      proxyUrl: aiConfig.proxyUrl,
-      temperature: aiConfig.temperature,
-      maxTokens: aiConfig.maxTokens,
-      topP: aiConfig.topP
+    // 加载当前配置
+    const currentConfig = await AIConfigService.loadProviderConfig(aiConfig.provider)
+    
+    // 确保modelConfigs存在
+    if (!currentConfig.modelConfigs) {
+      currentConfig.modelConfigs = {}
+    }
+    
+    // 保存当前模型的特定配置
+    if (aiConfig.model) {
+      currentConfig.modelConfigs[aiConfig.model] = {
+        temperature: aiConfig.temperature,
+        maxTokens: aiConfig.maxTokens,
+        topP: aiConfig.topP
+      }
     }
     
     // 保存当前服务商的配置
+    const providerConfig = {
+      ...currentConfig,
+      model: aiConfig.model,
+      apiKey: aiConfig.apiKey,
+      proxyUrl: aiConfig.proxyUrl
+    }
+    
+    // 保存当前服务商的配置，不包含customProviders
     await AIConfigService.saveConfig(aiConfig.provider, providerConfig)
     
     // 保存全局配置（当前选择的服务商和自定义服务商列表）
-    // 注意：这里我们需要创建一个临时对象来保存全局配置
-    // 因为AIConfigService.saveConfig只保存特定服务商的配置
     const globalConfig = {
       provider: aiConfig.provider,
-      customProviders: aiConfig.customProviders
+      customProviders: aiConfig.customProviders || []
     }
     
     // 保存全局配置到特殊的键名
-    await AIConfigService.saveConfig('global', globalConfig as any)
+    await AIConfigService.saveGlobalConfig(globalConfig)
     
     closeAIConfigModal()
     ElMessage.success('AI配置已保存')
@@ -454,6 +488,53 @@ const updateModelOptions = async () => {
   if (provider) {
     modelOptions.value = provider.models
     isEditingCustomProvider.value = false
+    
+    // 如果当前选中的模型不在新的选项列表中，选择第一个模型
+    if (!modelOptions.value.find(option => option.id === aiConfig.model)) {
+      aiConfig.model = modelOptions.value[0]?.id || ''
+    }
+    
+    // 加载当前服务商配置
+    try {
+      const providerConfig = await AIConfigService.loadProviderConfig(aiConfig.provider)
+      
+      // 检查是否有针对当前模型的保存配置
+      const modelConfig = providerConfig.modelConfigs?.[aiConfig.model]
+      
+      if (modelConfig) {
+        // 如果有模型特定配置，优先使用
+        if (modelConfig.maxTokens !== undefined) {
+          aiConfig.maxTokens = modelConfig.maxTokens
+        }
+        if (modelConfig.temperature !== undefined) {
+          aiConfig.temperature = modelConfig.temperature
+        }
+        if (modelConfig.topP !== undefined) {
+          aiConfig.topP = modelConfig.topP
+        }
+        
+        // 如果至少有一个配置项，则提前返回
+        if (modelConfig.maxTokens !== undefined || modelConfig.temperature !== undefined || modelConfig.topP !== undefined) {
+          return
+        }
+      }
+    } catch (error) {
+      console.error("加载配置失败:", error)
+    }
+    
+    // 如果没有保存的配置，使用模型默认值
+    const currentModel = provider.models.find(m => m.id === aiConfig.model)
+    
+    // 设置maxTokens
+    if (currentModel?.maxTokens) {
+      aiConfig.maxTokens = currentModel.maxTokens
+    } else {
+      aiConfig.maxTokens = 2000
+    }
+    
+    // 设置temperature和topP
+    aiConfig.temperature = provider.defaultTemperature
+    aiConfig.topP = provider.defaultTopP
   } else {
     // 查找自定义服务商
     const foundCustomProvider = aiConfig.customProviders?.find(p => p.name === aiConfig.provider)
@@ -470,12 +551,57 @@ const updateModelOptions = async () => {
 
   // 加载当前服务商的配置
   await loadCurrentProviderConfig()
-  
-  // 如果当前选中的模型不在新的选项列表中，选择第一个模型
-  if (!modelOptions.value.find(option => option.id === aiConfig.model)) {
-    aiConfig.model = modelOptions.value[0]?.id || ''
-  }
 }
+
+// 修改watch函数，使用新的modelConfigs结构
+watch(() => aiConfig.model, async (newModel) => {
+  if (newModel) {
+    // 加载当前服务商配置
+    try {
+      const providerConfig = await AIConfigService.loadProviderConfig(aiConfig.provider)
+      
+      // 检查是否有针对当前模型的保存配置
+      const modelConfig = providerConfig.modelConfigs?.[newModel]
+      
+      if (modelConfig) {
+        // 如果有模型特定配置，优先使用
+        if (modelConfig.maxTokens !== undefined) {
+          aiConfig.maxTokens = modelConfig.maxTokens
+        }
+        if (modelConfig.temperature !== undefined) {
+          aiConfig.temperature = modelConfig.temperature
+        }
+        if (modelConfig.topP !== undefined) {
+          aiConfig.topP = modelConfig.topP
+        }
+        
+        // 如果至少有一个配置项，则提前返回
+        if (modelConfig.maxTokens !== undefined || modelConfig.temperature !== undefined || modelConfig.topP !== undefined) {
+          return
+        }
+      }
+    } catch (error) {
+      console.error("加载配置失败:", error)
+    }
+    
+    // 如果没有保存的配置，使用模型默认值
+    const provider = AI_PROVIDERS.find(p => p.id === aiConfig.provider)
+    if (provider) {
+      const currentModel = provider.models.find(m => m.id === newModel)
+      
+      // 设置maxTokens
+      if (currentModel?.maxTokens) {
+        aiConfig.maxTokens = currentModel.maxTokens
+      } else {
+        aiConfig.maxTokens = 2000
+      }
+      
+      // 设置temperature和topP
+      aiConfig.temperature = provider.defaultTemperature
+      aiConfig.topP = provider.defaultTopP
+    }
+  }
+})
 
 // 检查是否有未保存的修改
 const hasUnsavedChanges = computed(() => {
@@ -510,9 +636,9 @@ const deleteCustomProvider = async () => {
       // 保存全局配置
       const globalConfig = {
         provider: aiConfig.provider,
-        customProviders: aiConfig.customProviders
+        customProviders: aiConfig.customProviders || []
       }
-      await AIConfigService.saveConfig('global', globalConfig as any)
+      await AIConfigService.saveGlobalConfig(globalConfig)
       
       closeCustomProviderModal()
       ElMessage.success('自定义服务商已删除')
@@ -549,21 +675,24 @@ const saveCustomProvider = async () => {
     model: customProvider.model.trim()
   }
 
-  // 添加到配置中
-  if (!aiConfig.customProviders) {
-    aiConfig.customProviders = []
-  }
-  aiConfig.customProviders.push(newProvider)
-
-  // 保存全局配置，确保自定义服务商信息被持久化
-  const globalConfig = {
-    provider: aiConfig.provider,
-    customProviders: aiConfig.customProviders
-  }
-  
   try {
-    // 保存全局配置到特殊的键名
-    await AIConfigService.saveConfig('global', globalConfig as any)
+    // 获取当前的自定义服务商列表
+    const customProviders = await AIConfigService.getCustomProviders()
+    
+    // 添加新的自定义服务商
+    customProviders.push(newProvider)
+    
+    // 更新aiConfig中的列表
+    aiConfig.customProviders = customProviders
+    
+    // 保存全局配置
+    const globalConfig = {
+      provider: aiConfig.provider,
+      customProviders: customProviders
+    }
+    
+    // 使用新的saveGlobalConfig方法保存
+    await AIConfigService.saveGlobalConfig(globalConfig)
     
     // 更新服务商选项
     await updateModelOptions()
