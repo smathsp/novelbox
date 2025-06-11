@@ -31,8 +31,8 @@
         <input type="password" id="apiKey" v-model="aiConfig.apiKey" placeholder="请输入API密钥" class="form-input" />
       </div>
       <div class="form-group">
-        <label for="proxyUrl">代理服务器</label>
-        <input type="text" id="proxyUrl" v-model="aiConfig.proxyUrl" placeholder="请输入代理服务器地址（例如：http://127.0.0.1:7890）"
+        <label for="proxyUrl">网络代理</label>
+        <input type="text" id="proxyUrl" v-model="aiConfig.proxyUrl" placeholder="例如：http://127.0.0.1:7890，留空则不使用代理"
           class="form-input" />
       </div>
       <div class="form-group">
