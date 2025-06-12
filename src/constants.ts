@@ -21,6 +21,7 @@ export const AI_PROVIDERS: AIProvider[] = [
       { id: 'gpt-4.1', name: 'GPT-4.1', maxTokens: 25000 },
       { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', maxTokens: 4096 },
       { id: 'o3', name: 'O3', maxTokens: 25000 },
+      { id: 'o3-pro', name: 'O3 Pro', maxTokens: 25000 },
       { id: 'o4-mini', name: 'O4-Mini', maxTokens: 25000 }
     ],
     defaultTemperature: 0.7,
