@@ -315,7 +315,21 @@ class AIService {
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          let errorMessage = `HTTP错误! 状态码: ${response.status}`;
+          
+          try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.error?.message) {
+              errorMessage += ` - ${errorJson.error.message}`;
+            } else {
+              errorMessage += ` - ${errorText}`;
+            }
+          } catch {
+            errorMessage += ` - ${errorText}`;
+          }
+          
+          throw new Error(errorMessage);
         }
 
         const reader = response.body?.getReader();
@@ -359,18 +373,34 @@ class AIService {
         throw error;
       }
     } else {
-      const response = await axios.post(baseURL, {
-        model: this.config.model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: temperature,
-        max_tokens: maxTokens,
-        top_p: topP
-      }, {
-        headers,
-        signal
-      });
+      try {
+        const response = await axios.post(baseURL, {
+          model: this.config.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: temperature,
+          max_tokens: maxTokens,
+          top_p: topP
+        }, {
+          headers,
+          signal
+        });
 
-      return response.data.choices[0]?.message?.content || '';
+        return response.data.choices[0]?.message?.content || '';
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          const errorData = error.response?.data;
+          if (errorData) {
+            let errorMessage = `API错误: ${error.response?.status}`;
+            if (errorData.error?.message) {
+              errorMessage += ` - ${errorData.error.message}`;
+            } else {
+              errorMessage += ` - ${JSON.stringify(errorData)}`;
+            }
+            throw new Error(errorMessage);
+          }
+        }
+        throw error;
+      }
     }
   }
 
