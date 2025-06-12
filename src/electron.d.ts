@@ -3,6 +3,11 @@ interface ElectronAPI {
   saveFileAs: (defaultPath: string) => Promise<{ success: boolean; filePath?: string; message?: string }>;
   onWorkspaceChanged: (callback: (workspacePath: string) => void) => void;
 
+  // 设置相关
+  onOpenSettings: (callback: () => void) => void;
+  changeWorkspace: (fromSettings?: boolean) => Promise<{ success: boolean; path?: string; message?: string; error?: any }>;
+  onTriggerChangeWorkspace: (callback: () => void) => void;
+
   // 窗口操作
   minimizeWindow: () => void;
   maximizeWindow: () => void;

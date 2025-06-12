@@ -30,13 +30,19 @@ class AIService {
     this.config = config;
 
     // 设置代理
-    if (config.proxyUrl) {
+    const useSystemProxy = localStorage.getItem('useSystemProxy');
+    // 如果useSystemProxy未设置或为'true'，则使用系统代理
+    if (useSystemProxy !== 'false') {
+      window.electronAPI.setProxy({ http_proxy: 'system' });
+    } else if (config.proxyUrl) {
+      // 如果明确禁用系统代理但AI配置中有代理URL，使用AI配置的代理
       window.electronAPI.setProxy({ http_proxy: config.proxyUrl });
     } else {
+      // 都没有设置，则不使用代理
       window.electronAPI.removeProxy();
     }
 
-    switch (config.provider) {
+    switch (this.config.provider) {
       case 'openai':
         this.openaiClient = new OpenAI({
           apiKey: config.apiKey,

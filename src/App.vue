@@ -6,6 +6,10 @@
     <div v-if="showAbout" class="modal">
       <About @close="closeAbout" />
     </div>
+    <div v-if="showSettings" class="modal-overlay" @click="closeSettings"></div>
+    <div v-if="showSettings" class="modal">
+      <Settings @close="closeSettings" />
+    </div>
   </div>
 </template>
 
@@ -13,23 +17,64 @@
 import { ref, onMounted } from 'vue'
 import AIConfigModal from './components/AIConfigModal.vue'
 import About from './views/About.vue'
+import Settings from './views/Settings.vue'
 
 const showAIConfigModal = ref(false)
 const showAbout = ref(false)
+const showSettings = ref(false)
 
 onMounted(() => {
   window.electronAPI.onOpenAISettings(() => {
     showAIConfigModal.value = true
   })
+  
   if (window.electronAPI && window.electronAPI.onOpenAboutPage) {
     window.electronAPI.onOpenAboutPage(() => {
       showAbout.value = true
     })
   }
+  
+  if (window.electronAPI && window.electronAPI.onOpenSettings) {
+    window.electronAPI.onOpenSettings(() => {
+      showSettings.value = true
+    })
+  }
+  
+  // 监听工作区变更事件
+  if (window.electronAPI && window.electronAPI.onWorkspaceChanged) {
+    window.electronAPI.onWorkspaceChanged((workspacePath) => {
+      console.log('工作区已更改:', workspacePath)
+      // 工作区变更由主进程处理，这里只记录日志
+    })
+  }
+  
+  // 监听触发工作区切换事件
+  if (window.electronAPI && window.electronAPI.onTriggerChangeWorkspace) {
+    window.electronAPI.onTriggerChangeWorkspace(async () => {
+      try {
+        await window.electronAPI.changeWorkspace();
+      } catch (error) {
+        console.error('更换工作区失败:', error);
+      }
+    })
+  }
+  
+  // 检查是否需要重新打开设置页面
+  const reopenSettings = localStorage.getItem('reopenSettings')
+  if (reopenSettings === 'true') {
+    // 清除标记
+    localStorage.removeItem('reopenSettings')
+    // 打开设置页面
+    showSettings.value = true
+  }
 })
 
 function closeAbout() {
   showAbout.value = false
+}
+
+function closeSettings() {
+  showSettings.value = false
 }
 </script>
 

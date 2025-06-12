@@ -98,20 +98,8 @@ function createMenu() {
           click: async () => {
             const win = BrowserWindow.getFocusedWindow();
             if (win) {
-              const { canceled, filePaths } = await dialog.showOpenDialog({
-                title: '选择工作区目录',
-                properties: ['openDirectory']
-              });
-
-              if (!canceled && filePaths.length > 0) {
-                const workspacePath = filePaths[0].replace(/\\/g, '\\\\');
-                win.webContents.send('workspace-changed', workspacePath);
-                // 将工作区路径保存到localStorage
-                win.webContents.executeJavaScript(`
-                  localStorage.setItem('workspacePath', '${workspacePath.replace(/\\/g, '\\\\')}');
-                  window.location.reload();
-                `);
-              }
+              // 直接调用IPC处理函数
+              win.webContents.send('trigger-change-workspace');
             }
           }
         },
@@ -121,6 +109,15 @@ function createMenu() {
             const win = BrowserWindow.getFocusedWindow();
             if (win) {
               win.webContents.send('open-ai-settings');
+            }
+          }
+        },
+        {
+          label: '全局设置',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow();
+            if (win) {
+              win.webContents.send('open-settings');
             }
           }
         },
@@ -190,11 +187,29 @@ ipcMain.on('set_proxy', (event, arg) => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) {
     const { http_proxy } = arg;
-    win.webContents.session.setProxy({
-      proxyRules: http_proxy
-    }).then(() => {
-      event.sender.send('proxy_status', { success: true });
-    });
+    
+    // 处理系统代理
+    if (http_proxy === 'system') {
+      // 使用系统代理设置
+      win.webContents.session.setProxy({ mode: 'system' })
+        .then(() => {
+          event.sender.send('proxy_status', { success: true });
+        })
+        .catch((error) => {
+          console.error('设置系统代理失败:', error);
+          event.sender.send('proxy_status', { success: false, error });
+        });
+    } else {
+      // 使用自定义代理
+      win.webContents.session.setProxy({ proxyRules: http_proxy })
+        .then(() => {
+          event.sender.send('proxy_status', { success: true });
+        })
+        .catch((error) => {
+          console.error('设置代理失败:', error);
+          event.sender.send('proxy_status', { success: false, error });
+        });
+    }
   }
 });
 
@@ -202,8 +217,14 @@ ipcMain.on('set_proxy', (event, arg) => {
 ipcMain.on('remove_proxy', (event) => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) {
-    win.webContents.session.setProxy({});
-    event.sender.send('proxy_status', { success: true });
+    win.webContents.session.setProxy({})
+      .then(() => {
+        event.sender.send('proxy_status', { success: true });
+      })
+      .catch((error) => {
+        console.error('移除代理失败:', error);
+        event.sender.send('proxy_status', { success: false, error });
+      });
   }
 });
 
@@ -356,6 +377,49 @@ ipcMain.handle('delete-file', async (_event, filePath: string) => {
 // 获取版本号
 ipcMain.handle('get-version', () => {
   return app.getVersion();
+});
+
+// 选择并应用工作区目录
+ipcMain.handle('change-workspace', async (event, fromSettings = false) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      return { success: false, message: '无法获取窗口实例' };
+    }
+
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: '选择工作区目录',
+      properties: ['openDirectory']
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { success: false, message: '用户取消选择' };
+    }
+
+    const workspacePath = filePaths[0];
+    
+    // 发送工作区变更事件
+    win.webContents.send('workspace-changed', workspacePath);
+    
+    // 将工作区路径保存到localStorage并重新加载
+    // 如果是从设置页面调用的，设置一个标记，以便重新加载后重新打开设置页面
+    await win.webContents.executeJavaScript(`
+      localStorage.setItem('workspacePath', '${workspacePath.replace(/\\/g, '\\\\')}');
+      ${fromSettings ? "localStorage.setItem('reopenSettings', 'true');" : ""}
+      window.location.reload();
+    `);
+    
+    return { success: true, path: workspacePath };
+  } catch (error: any) {
+    console.error('更换工作区失败:', error);
+    return { 
+      success: false, 
+      error: {
+        message: error.message,
+        code: error.code
+      }
+    };
+  }
 });
 
 // 打开外部链接

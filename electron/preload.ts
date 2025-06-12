@@ -13,6 +13,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setProxy: (config: { http_proxy: string }) => ipcRenderer.send('set_proxy', config),
   removeProxy: () => ipcRenderer.send('remove_proxy'),
 
+  // 设置相关
+  onOpenSettings: (callback: () => void) => ipcRenderer.on('open-settings', () => callback()),
+  changeWorkspace: (fromSettings = false) => ipcRenderer.invoke('change-workspace', fromSettings),
+  onTriggerChangeWorkspace: (callback: () => void) => ipcRenderer.on('trigger-change-workspace', () => callback()),
+
   // 应用操作
   minimizeWindow: () => ipcRenderer.send('minimize-window'),
   maximizeWindow: () => ipcRenderer.send('maximize-window'),
