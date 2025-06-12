@@ -272,6 +272,14 @@ export class AITextContinueController {
           this.generationTask.value = null;
           if (currentChapter?.id) {
             this.options.onContentSave(currentChapter.id, editor.root.innerHTML);
+            
+            // 选中生成的文本
+            const startPosition = insertPosition - generatedText.length;
+            const length = generatedText.length;
+            
+            // 选中生成的文本
+            editor.setSelection(startPosition, length, 'silent');
+            editor.focus();
           }
         }
         generatedText += text;
