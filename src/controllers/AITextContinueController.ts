@@ -212,6 +212,8 @@ export class AITextContinueController {
       insertPosition = currentPosition;
       // 现在才设置光标位置
       editor.setSelection(currentPosition, 0);
+      // 滚动到光标位置
+      editor.scrollIntoView();
       // 隐藏光标图标
       this.showContinueCursor.value = false;
     } else if (result === 'cancel') {
@@ -282,6 +284,10 @@ export class AITextContinueController {
           
           // 更新插入位置，以便下一次插入
           insertPosition += text.length;
+          
+          // 设置选区位置并滚动到可见区域
+          editor.setSelection(insertPosition, 0);
+          editor.scrollIntoView();
         }
       });
 

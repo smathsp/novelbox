@@ -121,7 +121,13 @@ export class AIChapterGenerateController {
         
         generatedText += text;
         if (!complete) {
-          editor.updateContents(new Delta().retain(editor.getLength() - 1).insert(text), 'user');
+          const currentLength = editor.getLength() - 1;
+          editor.updateContents(new Delta().retain(currentLength).insert(text), 'user');
+          
+          // 设置选区位置并滚动到可见区域
+          const newPosition = currentLength + text.length;
+          editor.setSelection(newPosition, 0);
+          editor.scrollIntoView();
         }
       });
 
