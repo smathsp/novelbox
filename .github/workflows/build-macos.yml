@@ -1,32 +1,49 @@
-name: Build Electron macOS App
+name: Build and Release
 
+# This workflow runs on pushes to the main branch or when manually triggered.
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:  # 可手动触发
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build-release:
+    # Use a matrix strategy to run on both Windows and macOS runners.
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
+      # 1. Check out the repository code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # 2. Set up pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8 # Specify a pnpm version
+
+      # 3. Set up Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+          cache: 'pnpm' # Enable caching for pnpm
 
+      # 4. Install dependencies
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install
 
-      - name: Build macOS app
-        run: yarn run build:mac  # 或你实际的构建命令，比如 electron-builder
+      # 5. Build the application for the specific OS
+      - name: Build application
+        run: pnpm run electron:release -- --${{ matrix.os == 'windows-latest' && 'win' || 'mac' }}
 
-      - name: Upload macOS build
-        uses: actions/upload-artifact@v3
+      # 6. Upload the build artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: mac-build
-          path: dist/mac  # 可能是 dist/mac/*.dmg、.zip 或 .app
+          name: NovelBox-${{ matrix.os }}
+          path: release/
