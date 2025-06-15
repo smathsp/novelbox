@@ -9,7 +9,7 @@
   "scripts": {
     "electron:build": "tsc -p tsconfig.electron.json && vite build && if not exist dist\\electron mkdir dist\\electron && copy electron\\main.ts dist\\electron\\ && copy electron\\preload.ts dist\\electron\\ && tsc dist\\electron\\main.ts dist\\electron\\preload.ts",
     "electron:dev": "concurrently -k \"cross-env NODE_ENV=development vite dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron ./electron-dev.cjs\"",
-    "electron:release": "electron-builder --win --x64 --publish never"
+    "electron:release": "electron-builder --publish never"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
