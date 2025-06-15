@@ -1,0 +1,46 @@
+# GitHub Action Workflow 的名称
+name: Build macOS Client
+
+# 触发条件：当有代码推送到 main 分支，或者手动触发时运行
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# 任务
+jobs:
+  build:
+    # 指定运行环境为最新的 macOS
+    runs-on: macos-latest
+
+    steps:
+      # 第一步：检出代码
+      # 使用 actions/checkout@v4 拉取你的仓库代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 第二步：设置 Flutter 环境
+      # 使用 subosito/flutter-action@v2 来安装和配置 Flutter SDK
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable' # 使用稳定版的 Flutter
+
+      # 第三步：安装项目依赖
+      # 运行 flutter pub get 来获取 pubspec.yaml 中定义的所有依赖包
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 第四步：编译 macOS 应用
+      # 运行 flutter build macos 命令来生成 macOS 客户端
+      - name: Build macOS application
+        run: flutter build macos
+
+      # 第五步：上传构建产物
+      # 将编译好的 .app 文件打包为 artifact，方便下载
+      # 构建好的文件通常在 build/macos/Build/Products/Release/ 目录下
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: novelbox-macOS-client # 上传文件的名称
+          path: build/macos/Build/Products/Release/*.app # 要上传的文件路径
